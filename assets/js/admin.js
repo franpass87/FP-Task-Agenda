@@ -281,14 +281,17 @@
                     if (response.success && response.data) {
                         var data = response.data;
                         
-                        // Aggiorna le classi del select e della riga
-                        var oldClasses = $select.attr('class').match(/fp-priority-\w+/g);
-                        if (oldClasses) {
-                            oldClasses.forEach(function(cls) {
-                                $select.removeClass(cls);
-                                $row.removeClass(cls);
-                            });
-                        }
+                        // Rimuovi tutte le classi di priorità vecchie dalla riga e dal select
+                        var priorityClasses = ['priority-low', 'priority-normal', 'priority-high', 'priority-urgent'];
+                        var fpPriorityClasses = ['fp-priority-low', 'fp-priority-normal', 'fp-priority-high', 'fp-priority-urgent'];
+                        
+                        priorityClasses.forEach(function(cls) {
+                            $row.removeClass(cls);
+                        });
+                        
+                        fpPriorityClasses.forEach(function(cls) {
+                            $select.removeClass(cls);
+                        });
                         
                         // Aggiungi nuove classi
                         var newPriorityClass = 'fp-priority-' + newPriority;
