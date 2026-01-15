@@ -291,7 +291,28 @@ class Database {
         $allowed_orderby = array('id', 'title', 'priority', 'status', 'due_date', 'created_at', 'client_id');
         $orderby_field = in_array($args['orderby'], $allowed_orderby) ? $args['orderby'] : 'created_at';
         $order_direction = strtoupper($args['order']) === 'ASC' ? 'ASC' : 'DESC';
-        $orderby = $orderby_field . ' ' . $order_direction;
+        
+        // Per priorità, usa un CASE per ordinare logicamente invece che alfabeticamente
+        if ($orderby_field === 'priority') {
+            // Ordine logico: urgent=4, high=3, normal=2, low=1
+            $orderby = "CASE priority 
+                WHEN 'urgent' THEN 4 
+                WHEN 'high' THEN 3 
+                WHEN 'normal' THEN 2 
+                WHEN 'low' THEN 1 
+                ELSE 0 
+            END " . $order_direction;
+        } elseif ($orderby_field === 'status') {
+            // Per status, ordine logico: pending=1, in_progress=2, completed=3
+            $orderby = "CASE status 
+                WHEN 'pending' THEN 1 
+                WHEN 'in_progress' THEN 2 
+                WHEN 'completed' THEN 3 
+                ELSE 0 
+            END " . $order_direction;
+        } else {
+            $orderby = $orderby_field . ' ' . $order_direction;
+        }
         
         $offset = ($args['page'] - 1) * $args['per_page'];
         $limit = absint($args['per_page']);
