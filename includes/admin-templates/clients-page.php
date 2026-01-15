@@ -45,7 +45,7 @@ if (!defined('ABSPATH')) {
                 </thead>
                 <tbody id="fp-clients-list">
                     <?php foreach ($clients as $client): ?>
-                        <tr class="fp-client-row" data-client-id="<?php echo esc_attr($client->id); ?>">
+                        <tr class="fp-task-row" data-client-id="<?php echo esc_attr($client->id); ?>">
                             <td>
                                 <strong class="fp-client-name"><?php echo esc_html($client->name); ?></strong>
                             </td>
