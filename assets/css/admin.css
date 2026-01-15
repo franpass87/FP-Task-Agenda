@@ -184,18 +184,51 @@
 }
 
 .fp-task-row:hover {
-    background-color: #f8f9fa;
     transform: scale(1.002);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    opacity: 0.95;
+}
+
+/* Mantieni il colore di priorità anche al hover, ma più intenso */
+.fp-task-row.priority-low:hover {
+    background: linear-gradient(90deg, rgba(116, 192, 252, 0.12) 0%, rgba(116, 192, 252, 0.06) 50%, rgba(248, 249, 250, 0.5) 100%);
+}
+
+.fp-task-row.priority-normal:hover {
+    background: linear-gradient(90deg, rgba(173, 181, 189, 0.08) 0%, rgba(173, 181, 189, 0.04) 50%, rgba(248, 249, 250, 0.5) 100%);
+}
+
+.fp-task-row.priority-high:hover {
+    background: linear-gradient(90deg, rgba(255, 212, 59, 0.14) 0%, rgba(255, 212, 59, 0.06) 50%, rgba(248, 249, 250, 0.5) 100%);
+}
+
+.fp-task-row.priority-urgent:hover {
+    background: linear-gradient(90deg, rgba(255, 107, 107, 0.15) 0%, rgba(255, 107, 107, 0.06) 50%, rgba(248, 249, 250, 0.5) 100%);
 }
 
 .fp-task-row.fp-task-completed {
     opacity: 0.65;
-    background: #f8f9fa;
 }
 
 .fp-task-row.fp-task-completed:hover {
     opacity: 0.8;
+}
+
+/* Task completati mantengono il colore di priorità ma più opaco */
+.fp-task-row.fp-task-completed.priority-low {
+    background: linear-gradient(90deg, rgba(116, 192, 252, 0.03) 0%, rgba(116, 192, 252, 0.01) 50%, rgba(248, 249, 250, 0.8) 100%);
+}
+
+.fp-task-row.fp-task-completed.priority-normal {
+    background: linear-gradient(90deg, rgba(173, 181, 189, 0.02) 0%, rgba(173, 181, 189, 0.005) 50%, rgba(248, 249, 250, 0.8) 100%);
+}
+
+.fp-task-row.fp-task-completed.priority-high {
+    background: linear-gradient(90deg, rgba(255, 212, 59, 0.04) 0%, rgba(255, 212, 59, 0.015) 50%, rgba(248, 249, 250, 0.8) 100%);
+}
+
+.fp-task-row.fp-task-completed.priority-urgent {
+    background: linear-gradient(90deg, rgba(255, 107, 107, 0.05) 0%, rgba(255, 107, 107, 0.02) 50%, rgba(248, 249, 250, 0.8) 100%);
 }
 
 .fp-task-row.fp-task-completed .fp-task-title {
@@ -205,24 +238,43 @@
 
 .fp-task-row.fp-task-due-soon {
     border-left: 4px solid #ff6b6b;
-    background: linear-gradient(90deg, rgba(255, 107, 107, 0.05) 0%, transparent 100%);
+}
+
+/* Se una riga è sia "due soon" che ha una priorità, mantieni il colore della priorità ma intensifica leggermente */
+.fp-task-row.fp-task-due-soon.priority-low {
+    background: linear-gradient(90deg, rgba(255, 107, 107, 0.08) 0%, rgba(116, 192, 252, 0.06) 30%, rgba(116, 192, 252, 0.02) 70%, transparent 100%);
+}
+
+.fp-task-row.fp-task-due-soon.priority-normal {
+    background: linear-gradient(90deg, rgba(255, 107, 107, 0.08) 0%, rgba(173, 181, 189, 0.04) 30%, rgba(173, 181, 189, 0.01) 70%, transparent 100%);
+}
+
+.fp-task-row.fp-task-due-soon.priority-high {
+    background: linear-gradient(90deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 212, 59, 0.08) 30%, rgba(255, 212, 59, 0.03) 70%, transparent 100%);
+}
+
+.fp-task-row.fp-task-due-soon.priority-urgent {
+    background: linear-gradient(90deg, rgba(255, 107, 107, 0.15) 0%, rgba(255, 107, 107, 0.1) 30%, rgba(255, 107, 107, 0.04) 70%, transparent 100%);
 }
 
 .fp-task-row.priority-low {
     border-left: 4px solid #74c0fc;
+    background: linear-gradient(90deg, rgba(116, 192, 252, 0.06) 0%, rgba(116, 192, 252, 0.02) 50%, transparent 100%);
 }
 
 .fp-task-row.priority-normal {
     border-left: 4px solid #adb5bd;
+    background: linear-gradient(90deg, rgba(173, 181, 189, 0.04) 0%, rgba(173, 181, 189, 0.01) 50%, transparent 100%);
 }
 
 .fp-task-row.priority-high {
     border-left: 4px solid #ffd43b;
+    background: linear-gradient(90deg, rgba(255, 212, 59, 0.08) 0%, rgba(255, 212, 59, 0.03) 50%, transparent 100%);
 }
 
 .fp-task-row.priority-urgent {
     border-left: 4px solid #ff6b6b;
-    background: linear-gradient(90deg, rgba(255, 107, 107, 0.08) 0%, transparent 100%);
+    background: linear-gradient(90deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 107, 107, 0.04) 50%, transparent 100%);
 }
 
 .fp-task-checkbox {
