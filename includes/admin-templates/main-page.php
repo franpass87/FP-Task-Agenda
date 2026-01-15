@@ -86,8 +86,18 @@ if (!defined('ABSPATH')) {
         </form>
     </div>
     
-    <!-- Lista Task -->
-    <div class="fp-tasks-container">
+    <!-- Toggle Vista -->
+    <div class="fp-view-toggle" style="margin: 15px 0; text-align: right;">
+        <button type="button" class="button fp-view-btn fp-view-table active" data-view="table">
+            <span class="dashicons dashicons-list-view"></span> <?php echo esc_html__('Tabella', 'fp-task-agenda'); ?>
+        </button>
+        <button type="button" class="button fp-view-btn fp-view-kanban" data-view="kanban">
+            <span class="dashicons dashicons-grid-view"></span> <?php echo esc_html__('Kanban', 'fp-task-agenda'); ?>
+        </button>
+    </div>
+    
+    <!-- Lista Task - Vista Tabella -->
+    <div class="fp-tasks-container fp-view-table-view">
         <?php if (empty($tasks)): ?>
             <div class="fp-no-tasks">
                 <p><?php echo esc_html__('Nessun task trovato.', 'fp-task-agenda'); ?></p>
@@ -367,6 +377,20 @@ if (!defined('ABSPATH')) {
                             </select>
                         </td>
                     </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="fp-task-recurrence"><?php echo esc_html__('Ricorrenza', 'fp-task-agenda'); ?></label>
+                        </th>
+                        <td>
+                            <select id="fp-task-recurrence" name="recurrence_type">
+                                <option value=""><?php echo esc_html__('Nessuna ricorrenza', 'fp-task-agenda'); ?></option>
+                                <option value="daily"><?php echo esc_html__('Giornaliera', 'fp-task-agenda'); ?></option>
+                                <option value="weekly"><?php echo esc_html__('Settimanale', 'fp-task-agenda'); ?></option>
+                                <option value="monthly"><?php echo esc_html__('Mensile', 'fp-task-agenda'); ?></option>
+                            </select>
+                            <p class="description"><?php echo esc_html__('Il task verrà creato automaticamente in base alla ricorrenza selezionata', 'fp-task-agenda'); ?></p>
+                        </td>
+                    </tr>
                 </table>
             </form>
         </div>
@@ -378,3 +402,30 @@ if (!defined('ABSPATH')) {
 </div>
 
 <div class="fp-modal-backdrop" id="fp-modal-backdrop" style="display: none;"></div>
+
+<!-- Vista Kanban -->
+<div class="fp-kanban-container fp-view-kanban-view" style="display: none;">
+    <div class="fp-kanban-board">
+        <div class="fp-kanban-column fp-column-pending" data-status="pending">
+            <div class="fp-kanban-header">
+                <h3><?php echo esc_html__('Da fare', 'fp-task-agenda'); ?></h3>
+                <span class="fp-kanban-count" id="count-pending">0</span>
+            </div>
+            <div class="fp-kanban-cards" id="kanban-pending"></div>
+        </div>
+        <div class="fp-kanban-column fp-column-in-progress" data-status="in_progress">
+            <div class="fp-kanban-header">
+                <h3><?php echo esc_html__('In corso', 'fp-task-agenda'); ?></h3>
+                <span class="fp-kanban-count" id="count-in-progress">0</span>
+            </div>
+            <div class="fp-kanban-cards" id="kanban-in-progress"></div>
+        </div>
+        <div class="fp-kanban-column fp-column-completed" data-status="completed">
+            <div class="fp-kanban-header">
+                <h3><?php echo esc_html__('Completati', 'fp-task-agenda'); ?></h3>
+                <span class="fp-kanban-count" id="count-completed">0</span>
+            </div>
+            <div class="fp-kanban-cards" id="kanban-completed"></div>
+        </div>
+    </div>
+</div>

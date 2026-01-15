@@ -42,6 +42,12 @@
             // Bulk actions
             $(document).on('click', '#doaction', this.bulkAction);
             
+            // Toggle vista Kanban/Tabella
+            $(document).on('click', '.fp-view-btn', this.toggleView);
+            
+            // Drag & drop Kanban
+            this.initKanbanDragDrop();
+            
             // Previeni chiusura modal cliccando dentro
             $(document).on('click', '.fp-modal-content', function(e) {
                 e.stopPropagation();
@@ -462,6 +468,134 @@
                     $(this).remove();
                 });
             }, 3000);
+        },
+        
+        toggleView: function() {
+            var view = $(this).data('view');
+            $('.fp-view-btn').removeClass('active');
+            $(this).addClass('active');
+            
+            if (view === 'kanban') {
+                $('.fp-view-table-view').hide();
+                $('.fp-view-kanban-view').show();
+                TaskAgenda.renderKanban();
+            } else {
+                $('.fp-view-kanban-view').hide();
+                $('.fp-view-table-view').show();
+            }
+        },
+        
+        renderKanban: function() {
+            var tasks = [];
+            $('.fp-task-row').each(function() {
+                var $row = $(this);
+                var task = {
+                    id: $row.data('task-id'),
+                    title: $row.find('.fp-task-title').text(),
+                    priority: $row.hasClass('priority-low') ? 'low' : 
+                              $row.hasClass('priority-normal') ? 'normal' :
+                              $row.hasClass('priority-high') ? 'high' : 'urgent',
+                    status: $row.find('.fp-status-quick-change').val() || 'pending',
+                    dueDate: $row.find('.fp-task-date').text(),
+                    client: $row.find('td:nth-child(3)').text().trim()
+                };
+                tasks.push(task);
+            });
+            
+            // Reset colonne
+            $('#kanban-pending, #kanban-in-progress, #kanban-completed').empty();
+            
+            // Popola colonne
+            var counts = {pending: 0, in_progress: 0, completed: 0};
+            tasks.forEach(function(task) {
+                var card = TaskAgenda.createKanbanCard(task);
+                $('#kanban-' + task.status).append(card);
+                counts[task.status]++;
+            });
+            
+            // Aggiorna contatori
+            $('#count-pending').text(counts.pending);
+            $('#count-in-progress').text(counts.in_progress);
+            $('#count-completed').text(counts.completed);
+        },
+        
+        createKanbanCard: function(task) {
+            var priorityClass = 'fp-priority-' + task.priority;
+            var priorityLabel = task.priority === 'low' ? 'Bassa' : 
+                               task.priority === 'normal' ? 'Normale' : 
+                               task.priority === 'high' ? 'Alta' : 'Urgente';
+            
+            var card = $('<div class="fp-kanban-card" data-task-id="' + task.id + '" draggable="true">' +
+                '<div class="fp-kanban-card-header">' +
+                    '<span class="fp-priority-badge fp-priority-' + task.priority + '">' + priorityLabel + '</span>' +
+                '</div>' +
+                '<div class="fp-kanban-card-title">' + task.title + '</div>' +
+                (task.client ? '<div class="fp-kanban-card-client">' + task.client + '</div>' : '') +
+                (task.dueDate ? '<div class="fp-kanban-card-date">' + task.dueDate + '</div>' : '') +
+                '<div class="fp-kanban-card-actions">' +
+                    '<button class="button-link fp-edit-task" data-task-id="' + task.id + '"><span class="dashicons dashicons-edit"></span></button>' +
+                    '<button class="button-link fp-delete-task" data-task-id="' + task.id + '"><span class="dashicons dashicons-trash"></span></button>' +
+                '</div>' +
+            '</div>');
+            
+            return card;
+        },
+        
+        initKanbanDragDrop: function() {
+            // Drag start
+            $(document).on('dragstart', '.fp-kanban-card', function(e) {
+                $(this).addClass('dragging');
+                e.originalEvent.dataTransfer.effectAllowed = 'move';
+            });
+            
+            // Drag end
+            $(document).on('dragend', '.fp-kanban-card', function() {
+                $(this).removeClass('dragging');
+            });
+            
+            // Drag over
+            $(document).on('dragover', '.fp-kanban-cards', function(e) {
+                e.preventDefault();
+                e.originalEvent.dataTransfer.dropEffect = 'move';
+                $(this).addClass('drag-over');
+            });
+            
+            // Drag leave
+            $(document).on('dragleave', '.fp-kanban-cards', function() {
+                $(this).removeClass('drag-over');
+            });
+            
+            // Drop
+            $(document).on('drop', '.fp-kanban-cards', function(e) {
+                e.preventDefault();
+                $(this).removeClass('drag-over');
+                
+                var $card = $('.dragging');
+                var taskId = $card.data('task-id');
+                var newStatus = $(this).closest('.fp-kanban-column').data('status');
+                
+                // Sposta la card
+                $(this).append($card);
+                $card.removeClass('dragging');
+                
+                // Aggiorna via AJAX
+                $.ajax({
+                    url: fpTaskAgenda.ajaxUrl,
+                    type: 'POST',
+                    data: {
+                        action: 'fp_task_agenda_quick_change_status',
+                        nonce: fpTaskAgenda.nonce,
+                        id: taskId,
+                        status: newStatus
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Ricarica la vista
+                            TaskAgenda.renderKanban();
+                        }
+                    }
+                });
+            });
         }
     };
     

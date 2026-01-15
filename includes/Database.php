@@ -84,6 +84,31 @@ class Database {
             $wpdb->query("ALTER TABLE $table_name ADD COLUMN client_id bigint(20) NULL AFTER due_date");
             $wpdb->query("ALTER TABLE $table_name ADD KEY client_id (client_id)");
         }
+        
+        // Aggiungi colonne per ricorrenza se non esistono
+        $recurrence_columns = array(
+            'recurrence_type' => "ALTER TABLE $table_name ADD COLUMN recurrence_type varchar(20) NULL AFTER client_id",
+            'recurrence_interval' => "ALTER TABLE $table_name ADD COLUMN recurrence_interval int(11) NULL DEFAULT 1 AFTER recurrence_type",
+            'recurrence_parent_id' => "ALTER TABLE $table_name ADD COLUMN recurrence_parent_id bigint(20) NULL AFTER recurrence_interval",
+            'next_recurrence_date' => "ALTER TABLE $table_name ADD COLUMN next_recurrence_date datetime NULL AFTER recurrence_parent_id"
+        );
+        
+        foreach ($recurrence_columns as $column_name => $sql) {
+            $column_check = $wpdb->get_results($wpdb->prepare(
+                "SHOW COLUMNS FROM $table_name LIKE %s",
+                $column_name
+            ));
+            
+            if (empty($column_check)) {
+                $wpdb->query($sql);
+                if ($column_name === 'recurrence_parent_id') {
+                    $wpdb->query("ALTER TABLE $table_name ADD KEY recurrence_parent_id (recurrence_parent_id)");
+                }
+                if ($column_name === 'next_recurrence_date') {
+                    $wpdb->query("ALTER TABLE $table_name ADD KEY next_recurrence_date (next_recurrence_date)");
+                }
+            }
+        }
     }
     
     /**
@@ -109,6 +134,10 @@ class Database {
             'status' => 'pending',
             'due_date' => null,
             'client_id' => null,
+            'recurrence_type' => null,
+            'recurrence_interval' => 1,
+            'recurrence_parent_id' => null,
+            'next_recurrence_date' => null,
             'user_id' => get_current_user_id()
         );
         
@@ -127,6 +156,10 @@ class Database {
             'status' => in_array($data['status'], array('pending', 'in_progress', 'completed')) ? $data['status'] : 'pending',
             'due_date' => !empty($data['due_date']) ? sanitize_text_field($data['due_date']) : null,
             'client_id' => !empty($data['client_id']) ? absint($data['client_id']) : null,
+            'recurrence_type' => !empty($data['recurrence_type']) && in_array($data['recurrence_type'], array('daily', 'weekly', 'monthly')) ? $data['recurrence_type'] : null,
+            'recurrence_interval' => !empty($data['recurrence_interval']) ? absint($data['recurrence_interval']) : 1,
+            'recurrence_parent_id' => !empty($data['recurrence_parent_id']) ? absint($data['recurrence_parent_id']) : null,
+            'next_recurrence_date' => !empty($data['next_recurrence_date']) ? sanitize_text_field($data['next_recurrence_date']) : null,
             'user_id' => absint($data['user_id'])
         );
         
@@ -184,6 +217,18 @@ class Database {
         
         if (isset($data['client_id'])) {
             $update_data['client_id'] = !empty($data['client_id']) ? absint($data['client_id']) : null;
+        }
+        
+        if (isset($data['recurrence_type'])) {
+            $update_data['recurrence_type'] = !empty($data['recurrence_type']) && in_array($data['recurrence_type'], array('daily', 'weekly', 'monthly')) ? $data['recurrence_type'] : null;
+        }
+        
+        if (isset($data['recurrence_interval'])) {
+            $update_data['recurrence_interval'] = !empty($data['recurrence_interval']) ? absint($data['recurrence_interval']) : 1;
+        }
+        
+        if (isset($data['next_recurrence_date'])) {
+            $update_data['next_recurrence_date'] = !empty($data['next_recurrence_date']) ? sanitize_text_field($data['next_recurrence_date']) : null;
         }
         
         if (empty($update_data)) {

@@ -220,12 +220,28 @@ class Admin {
             wp_send_json_error(array('message' => __('Il titolo è obbligatorio', 'fp-task-agenda')));
         }
         
+        $recurrence_type = isset($_POST['recurrence_type']) && !empty($_POST['recurrence_type']) ? sanitize_text_field($_POST['recurrence_type']) : null;
+        $recurrence_interval = 1;
+        $next_recurrence_date = null;
+        
+        // Calcola next_recurrence_date se c'è una ricorrenza
+        if (!empty($recurrence_type) && !empty($due_date)) {
+            $next_recurrence_date = \FP\TaskAgenda\Plugin::calculate_next_recurrence_date_static(
+                $due_date,
+                $recurrence_type,
+                $recurrence_interval
+            );
+        }
+        
         $result = Database::insert_task(array(
             'title' => $title,
             'description' => $description,
             'priority' => $priority,
             'due_date' => $due_date,
-            'client_id' => $client_id
+            'client_id' => $client_id,
+            'recurrence_type' => $recurrence_type,
+            'recurrence_interval' => $recurrence_interval,
+            'next_recurrence_date' => $next_recurrence_date
         ));
         
         if (is_wp_error($result)) {
@@ -265,6 +281,20 @@ class Admin {
         }
         if (isset($_POST['client_id'])) {
             $data['client_id'] = !empty($_POST['client_id']) ? absint($_POST['client_id']) : null;
+        }
+        if (isset($_POST['recurrence_type'])) {
+            $data['recurrence_type'] = sanitize_text_field($_POST['recurrence_type']);
+            // Calcola next_recurrence_date se c'è una ricorrenza
+            if (!empty($data['recurrence_type']) && isset($_POST['due_date']) && !empty($_POST['due_date'])) {
+                $due_date = sanitize_text_field($_POST['due_date']);
+                $data['next_recurrence_date'] = \FP\TaskAgenda\Plugin::calculate_next_recurrence_date_static(
+                    $due_date,
+                    $data['recurrence_type'],
+                    1
+                );
+            } else {
+                $data['next_recurrence_date'] = null;
+            }
         }
         
         $result = Database::update_task($id, $data);
