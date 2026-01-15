@@ -1,4 +1,5 @@
-vendor/
+# Mantieni vendor/ nel repository per Git Updater
+# vendor/
 .DS_Store
 *.log
 .idea/
