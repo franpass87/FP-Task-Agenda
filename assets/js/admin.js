@@ -286,21 +286,28 @@
                     if (response.success && response.data) {
                         var data = response.data;
                         
-                        // Rimuovi tutte le classi di priorità vecchie dalla riga e dal select
+                        // Rimuovi TUTTE le classi di priorità dalla riga usando attr per essere sicuri
+                        var currentRowClasses = $row.attr('class') || '';
                         var priorityClasses = ['priority-low', 'priority-normal', 'priority-high', 'priority-urgent'];
                         var fpPriorityClasses = ['fp-priority-low', 'fp-priority-normal', 'fp-priority-high', 'fp-priority-urgent'];
                         
-                        // Rimuovi tutte le classi vecchie
+                        // Rimuovi tutte le classi di priorità dalla riga
                         priorityClasses.forEach(function(cls) {
-                            $row.removeClass(cls);
+                            currentRowClasses = currentRowClasses.replace(new RegExp('\\s*' + cls + '\\s*', 'g'), ' ');
                         });
+                        $row.attr('class', currentRowClasses.trim());
                         
+                        // Rimuovi tutte le classi di priorità dal select
+                        var currentSelectClasses = $select.attr('class') || '';
                         fpPriorityClasses.forEach(function(cls) {
-                            $select.removeClass(cls);
+                            currentSelectClasses = currentSelectClasses.replace(new RegExp('\\s*' + cls + '\\s*', 'g'), ' ');
                         });
+                        $select.attr('class', currentSelectClasses.trim());
                         
                         // Forza un reflow per assicurarsi che le rimozioni vengano applicate
-                        $row[0].offsetHeight;
+                        if ($row[0]) {
+                            $row[0].offsetHeight;
+                        }
                         
                         // Aggiungi nuove classi
                         var newPriorityClass = 'fp-priority-' + newPriority;
@@ -310,7 +317,9 @@
                         $row.addClass(rowPriorityClass);
                         
                         // Forza un altro reflow per assicurarsi che le nuove classi vengano applicate
-                        $row[0].offsetHeight;
+                        if ($row[0]) {
+                            $row[0].offsetHeight;
+                        }
                         
                         // Aggiorna l'opzione selezionata
                         $select.find('option').prop('selected', false);
