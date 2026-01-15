@@ -118,6 +118,19 @@ if (!defined('ABSPATH')) {
 
 <script>
 jQuery(document).ready(function($) {
+    // Verifica che fpTaskAgenda sia disponibile
+    if (typeof fpTaskAgenda === 'undefined') {
+        console.error('fpTaskAgenda non è definito');
+        // Fallback: definisci le variabili necessarie
+        if (typeof ajaxurl === 'undefined') {
+            window.ajaxurl = '<?php echo esc_js(admin_url('admin-ajax.php')); ?>';
+        }
+        window.fpTaskAgenda = {
+            ajaxUrl: ajaxurl,
+            nonce: '<?php echo esc_js(wp_create_nonce('fp_task_agenda_nonce')); ?>'
+        };
+    }
+    
     // Gestione clienti
     $('#fp-add-client-btn').on('click', function() {
         $('#fp-client-modal-title').text('<?php echo esc_js(__('Aggiungi Cliente', 'fp-task-agenda')); ?>');
@@ -185,8 +198,17 @@ jQuery(document).ready(function($) {
             },
             success: function(response) {
                 if (response.success) {
-                    alert(response.data.message || '<?php echo esc_js(__('Sincronizzazione completata', 'fp-task-agenda')); ?>');
-                    window.location.reload();
+                    var message = response.data.message || '<?php echo esc_js(__('Sincronizzazione completata', 'fp-task-agenda')); ?>';
+                    // Mostra sempre il messaggio, anche se synced è 0
+                    if (response.data.synced === 0 && response.data.updated === 0 && response.data.skipped === 0) {
+                        alert('<?php echo esc_js(__('Nessun cliente trovato in FP Publisher', 'fp-task-agenda')); ?>');
+                    } else {
+                        alert(message);
+                    }
+                    // Ricarica solo se ci sono stati cambiamenti o per aggiornare i nomi
+                    if (response.data.synced > 0 || response.data.updated > 0) {
+                        window.location.reload();
+                    }
                 } else {
                     alert(response.data.message || '<?php echo esc_js(__('Errore durante la sincronizzazione', 'fp-task-agenda')); ?>');
                 }

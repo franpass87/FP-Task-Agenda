@@ -299,10 +299,22 @@ class Client {
             }
         }
         
+        // Messaggio più informativo
+        if ($synced > 0 && $skipped > 0) {
+            $message = sprintf(__('Sincronizzati %d nuovi clienti. %d già esistenti aggiornati.', 'fp-task-agenda'), $synced, $skipped);
+        } elseif ($synced > 0) {
+            $message = sprintf(__('Sincronizzati %d clienti da FP Publisher', 'fp-task-agenda'), $synced);
+        } elseif ($skipped > 0) {
+            $message = sprintf(__('Tutti i clienti sono già sincronizzati. %d clienti verificati e aggiornati se necessario.', 'fp-task-agenda'), $skipped);
+        } else {
+            $message = __('Nessun cliente da sincronizzare', 'fp-task-agenda');
+        }
+        
         return array(
             'success' => true,
-            'message' => sprintf(__('Sincronizzati %d clienti da FP Publisher', 'fp-task-agenda'), $synced),
+            'message' => $message,
             'synced' => $synced,
+            'updated' => $skipped,
             'skipped' => $skipped,
             'total' => count($remote_sites)
         );
