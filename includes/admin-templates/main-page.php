@@ -145,11 +145,11 @@ if (!defined('ABSPATH')) {
     
     <!-- Toggle Vista -->
     <div class="fp-view-toggle" style="margin: 15px 0; text-align: right;">
-        <button type="button" class="button fp-view-btn fp-view-table active" data-view="table">
-            <span class="dashicons dashicons-list-view"></span> <?php echo esc_html__('Tabella', 'fp-task-agenda'); ?>
+        <button type="button" class="page-title-action fp-view-btn fp-view-table active" data-view="table">
+            <?php echo esc_html__('Tabella', 'fp-task-agenda'); ?>
         </button>
-        <button type="button" class="button fp-view-btn fp-view-kanban" data-view="kanban">
-            <span class="dashicons dashicons-grid-view"></span> <?php echo esc_html__('Kanban', 'fp-task-agenda'); ?>
+        <button type="button" class="page-title-action fp-view-btn fp-view-kanban" data-view="kanban">
+            <?php echo esc_html__('Kanban', 'fp-task-agenda'); ?>
         </button>
     </div>
     
