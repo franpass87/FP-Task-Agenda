@@ -1199,11 +1199,52 @@
     padding: 60px 20px;
     background: #f8f9fa;
     border-radius: 12px;
-    border: 2px dashed #dee2e6;
+    border: 1px solid #e9ecef;
+    margin-top: 24px;
 }
 
+.fp-no-templates p {
+    margin: 0;
+}
+
+.fp-no-templates p:first-child {
+    font-size: 16px;
+    color: #495057;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.fp-no-templates p:last-child {
+    font-size: 14px;
+    color: #6c757d;
+}
+
+/* Stili template table - usa gli stessi stili della tasks table */
 .fp-templates-table {
-    margin-top: 20px;
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e9ecef;
+    table-layout: fixed;
+    width: 100%;
+    margin-top: 24px;
+}
+
+.fp-templates-table th {
+    font-weight: 600;
+    background: #f8f9fa;
+    padding: 16px 12px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #495057;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.fp-templates-table td {
+    padding: 16px 12px;
+    vertical-align: middle;
 }
 
 .fp-template-actions {
@@ -1216,8 +1257,24 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    color: #4dabf7;
+    text-decoration: none;
+    transition: all 0.2s ease;
     padding: 4px 8px;
     font-size: 13px;
+}
+
+.fp-template-actions .button-link:hover {
+    color: #339af0;
+    text-decoration: underline;
+}
+
+.fp-template-actions .button-link.delete {
+    color: #ff6b6b;
+}
+
+.fp-template-actions .button-link.delete:hover {
+    color: #fa5252;
 }
 
 .fp-template-actions .separator {

@@ -54,9 +54,6 @@ if (!defined('ABSPATH')) {
                             'monthly' => __('Mensile', 'fp-task-agenda')
                         );
                         ?>
-                        <?php
-                        $priority_class = \FP\TaskAgenda\Task::get_priority_class($template->priority);
-                        ?>
                         <tr class="fp-task-row <?php echo esc_attr($priority_class); ?>" data-template-id="<?php echo esc_attr($template->id); ?>">
                             <td>
                                 <strong class="fp-template-name"><?php echo esc_html($template->name); ?></strong>
