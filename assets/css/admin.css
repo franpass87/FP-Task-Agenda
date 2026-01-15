@@ -911,7 +911,8 @@
 }
 
 /* Pulsante aggiungi task */
-#fp-add-task-btn {
+#fp-add-task-btn,
+#fp-create-from-template-btn {
     border-radius: 8px;
     padding: 8px 20px;
     font-weight: 600;
@@ -919,9 +920,16 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
-#fp-add-task-btn:hover {
+#fp-add-task-btn:hover,
+#fp-create-from-template-btn:hover:not(.fp-btn-disabled) {
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+#fp-create-from-template-btn.fp-btn-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: auto;
 }
 
 /* Responsive */
