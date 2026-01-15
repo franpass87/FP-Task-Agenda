@@ -1,0 +1,26 @@
+{
+    "name": "franpass87/fp-task-agenda",
+    "description": "Agenda semplice per gestire task e attività da fare",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "version": "1.0.0",
+    "authors": [
+        {
+            "name": "Francesco Passeri",
+            "email": "info@francescopasseri.com",
+            "homepage": "https://www.francescopasseri.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "FP\\TaskAgenda\\": "includes/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}

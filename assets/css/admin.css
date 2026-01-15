@@ -1,0 +1,804 @@
+/**
+ * Stili Admin - FP Task Agenda
+ * Design moderno e pulito
+ */
+
+.fp-task-agenda-wrap {
+    max-width: 1400px;
+}
+
+/* Statistiche */
+.fp-task-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    margin: 24px 0 32px;
+}
+
+.fp-stat-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.fp-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+.fp-stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    border-color: #d0d0d0;
+}
+
+.fp-stat-card:hover::before {
+    height: 4px;
+}
+
+.fp-stat-card.fp-stat-pending::before {
+    background: linear-gradient(90deg, #ff6b6b 0%, #ee5a52 100%);
+}
+
+.fp-stat-card.fp-stat-progress::before {
+    background: linear-gradient(90deg, #4dabf7 0%, #339af0 100%);
+}
+
+.fp-stat-card.fp-stat-completed::before {
+    background: linear-gradient(90deg, #51cf66 0%, #40c057 100%);
+}
+
+.fp-stat-card .fp-stat-label {
+    display: block;
+    font-size: 12px;
+    color: #6c757d;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+.fp-stat-card .fp-stat-value {
+    display: block;
+    font-size: 42px;
+    font-weight: 700;
+    color: #212529;
+    line-height: 1.2;
+    letter-spacing: -1px;
+}
+
+.fp-stat-card.fp-stat-pending .fp-stat-value {
+    color: #ff6b6b;
+}
+
+.fp-stat-card.fp-stat-progress .fp-stat-value {
+    color: #4dabf7;
+}
+
+.fp-stat-card.fp-stat-completed .fp-stat-value {
+    color: #51cf66;
+}
+
+/* Filtri */
+.fp-task-filters {
+    background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+    border: 1px solid #e9ecef;
+    padding: 20px 24px;
+    margin: 0 0 24px;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.fp-filter-form {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.fp-filter-form select,
+.fp-filter-form input {
+    padding: 8px 14px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    background: #fff;
+}
+
+.fp-filter-form select:focus,
+.fp-filter-form input:focus {
+    outline: none;
+    border-color: #4dabf7;
+    box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.1);
+}
+
+.fp-filter-form .button {
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.fp-filter-form .button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+.fp-search-input {
+    flex: 1;
+    min-width: 250px;
+}
+
+/* Tabella Task */
+.fp-tasks-container {
+    margin-top: 24px;
+}
+
+.fp-tasks-table {
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e9ecef;
+    table-layout: fixed;
+    width: 100%;
+}
+
+.fp-tasks-table th {
+    font-weight: 600;
+    background: #f8f9fa;
+    padding: 16px 12px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #495057;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.fp-tasks-table td {
+    padding: 16px 12px;
+    vertical-align: middle;
+}
+
+.fp-task-row {
+    transition: all 0.2s ease;
+    border-bottom: 1px solid #f1f3f5;
+}
+
+.fp-task-row:last-child {
+    border-bottom: none;
+}
+
+.fp-task-row:hover {
+    background-color: #f8f9fa;
+    transform: scale(1.002);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.fp-task-row.fp-task-completed {
+    opacity: 0.65;
+    background: #f8f9fa;
+}
+
+.fp-task-row.fp-task-completed:hover {
+    opacity: 0.8;
+}
+
+.fp-task-row.fp-task-completed .fp-task-title {
+    text-decoration: line-through;
+    color: #868e96;
+}
+
+.fp-task-row.fp-task-due-soon {
+    border-left: 4px solid #ff6b6b;
+    background: linear-gradient(90deg, rgba(255, 107, 107, 0.05) 0%, transparent 100%);
+}
+
+.fp-task-row.priority-low {
+    border-left: 4px solid #74c0fc;
+}
+
+.fp-task-row.priority-normal {
+    border-left: 4px solid #adb5bd;
+}
+
+.fp-task-row.priority-high {
+    border-left: 4px solid #ffd43b;
+}
+
+.fp-task-row.priority-urgent {
+    border-left: 4px solid #ff6b6b;
+    background: linear-gradient(90deg, rgba(255, 107, 107, 0.08) 0%, transparent 100%);
+}
+
+.fp-task-checkbox {
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    accent-color: #4dabf7;
+}
+
+/* Badge Priorità */
+.fp-priority-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease;
+}
+
+.fp-priority-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+.fp-priority-badge .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+.fp-priority-low {
+    background: linear-gradient(135deg, #e7f5ff 0%, #d0ebff 100%);
+    color: #1971c2;
+    border: 1px solid #a5d8ff;
+}
+
+.fp-priority-normal {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    color: #495057;
+    border: 1px solid #dee2e6;
+}
+
+.fp-priority-high {
+    background: linear-gradient(135deg, #fff9db 0%, #fff3bf 100%);
+    color: #f59f00;
+    border: 1px solid #ffd43b;
+}
+
+.fp-priority-urgent {
+    background: linear-gradient(135deg, #ffe3e3 0%, #ffc9c9 100%);
+    color: #c92a2a;
+    border: 1px solid #ffa8a8;
+}
+
+/* Dropdown cambio stato rapido */
+.fp-status-quick-change {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: 500;
+    width: 100%;
+    max-width: 120px;
+    box-sizing: border-box;
+}
+
+/* Assicura che le colonne abbiano dimensioni fisse */
+/* Colonna Stato (7° elemento dopo checkbox td/th) */
+.fp-tasks-table thead tr th:nth-child(7),
+.fp-tasks-table tbody tr td:nth-child(7),
+.fp-tasks-table thead tr td:nth-child(7) {
+    width: 130px !important;
+    min-width: 130px;
+    max-width: 130px;
+    overflow: hidden;
+    word-wrap: break-word;
+}
+
+/* Colonna Creato (8° elemento) */
+.fp-tasks-table thead tr th:nth-child(8),
+.fp-tasks-table tbody tr td:nth-child(8),
+.fp-tasks-table thead tr td:nth-child(8) {
+    width: 140px !important;
+    min-width: 140px;
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Assicura che il dropdown non esca dalla cella */
+.fp-tasks-table tbody tr td:nth-child(7) {
+    position: relative;
+}
+
+.fp-tasks-table tbody tr td:nth-child(7) .fp-status-quick-change {
+    width: 100%;
+    max-width: 120px;
+    box-sizing: border-box;
+}
+
+.fp-status-quick-change:hover {
+    border-color: #4dabf7;
+    box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.1);
+}
+
+.fp-status-quick-change:focus {
+    border-color: #4dabf7;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.15);
+}
+
+/* Colonna data */
+.fp-task-date {
+    color: #6c757d;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Tablenav */
+.tablenav.top {
+    margin: 0 0 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.tablenav .alignleft.actions {
+    margin-right: 16px;
+}
+
+.tablenav .bulkactions select,
+.tablenav .bulkactions .button {
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    padding: 8px 14px;
+    transition: all 0.2s ease;
+}
+
+.tablenav .bulkactions .button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Azioni task */
+.fp-task-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.fp-task-actions .button-link {
+    padding: 6px 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    color: #495057;
+}
+
+.fp-task-actions .button-link:hover {
+    background: #e9ecef;
+    color: #212529;
+    transform: translateY(-1px);
+}
+
+.fp-task-actions .button-link.delete:hover {
+    background: #ffe3e3;
+    color: #c92a2a;
+}
+
+.fp-task-actions .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+/* Ordinamento colonne */
+.fp-tasks-table th.sortable a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.2s ease;
+}
+
+.fp-tasks-table th.sortable a:hover {
+    color: #4dabf7;
+}
+
+.fp-tasks-table th.sorted a {
+    color: #4dabf7;
+}
+
+.fp-tasks-table th.sorted.asc .sorting-indicator::before {
+    content: '↑';
+    font-weight: bold;
+}
+
+.fp-tasks-table th.sorted.desc .sorting-indicator::before {
+    content: '↓';
+    font-weight: bold;
+}
+
+.fp-tasks-table th.sortable .sorting-indicator::before {
+    content: '⇅';
+    opacity: 0.3;
+    font-size: 14px;
+    transition: opacity 0.2s ease;
+}
+
+.fp-tasks-table th.sortable:hover .sorting-indicator::before {
+    opacity: 0.6;
+}
+
+.fp-tasks-table th.sorted .sorting-indicator::before {
+    opacity: 1;
+}
+
+/* Testo task */
+.fp-task-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 4px;
+}
+
+.fp-task-description {
+    color: #6c757d;
+    font-size: 13px;
+    margin-top: 6px;
+    line-height: 1.5;
+}
+
+.fp-due-date {
+    font-size: 13px;
+    color: #6c757d;
+    font-weight: 500;
+    padding: 4px 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    display: inline-block;
+}
+
+.fp-due-date.fp-due-soon {
+    color: #c92a2a;
+    background: #ffe3e3;
+    font-weight: 600;
+}
+
+.fp-no-due-date {
+    color: #adb5bd;
+    font-style: italic;
+    font-size: 13px;
+}
+
+/* Status badge */
+.fp-status-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.fp-status-badge.fp-status-pending {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    color: #495057;
+    border: 1px solid #dee2e6;
+}
+
+.fp-status-badge.fp-status-in_progress {
+    background: linear-gradient(135deg, #e7f5ff 0%, #d0ebff 100%);
+    color: #1971c2;
+    border: 1px solid #a5d8ff;
+}
+
+.fp-status-badge.fp-status-completed {
+    background: linear-gradient(135deg, #d3f9d8 0%, #b2f2bb 100%);
+    color: #2b8a3e;
+    border: 1px solid #8ce99a;
+}
+
+/* Clienti */
+.fp-client-name {
+    font-weight: 600;
+    color: #212529;
+    padding: 4px 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    display: inline-block;
+}
+
+.fp-no-client {
+    color: #adb5bd;
+    font-style: italic;
+    font-size: 13px;
+}
+
+.fp-client-source {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: #f8f9fa;
+    margin-top: 4px;
+}
+
+.fp-source-publisher {
+    color: #1971c2;
+}
+
+.fp-source-manual {
+    color: #6c757d;
+}
+
+.fp-readonly-note {
+    color: #6c757d;
+    font-style: italic;
+    font-size: 12px;
+}
+
+/* Empty states */
+.fp-no-tasks,
+.fp-no-clients {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border: 2px dashed #dee2e6;
+    border-radius: 12px;
+    padding: 60px 40px;
+    text-align: center;
+    color: #6c757d;
+}
+
+.fp-no-tasks p,
+.fp-no-clients p {
+    font-size: 16px;
+    margin: 0;
+}
+
+/* Modal */
+.fp-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 100000;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.fp-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    z-index: 100001;
+    min-width: 560px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -48%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+.fp-modal-content {
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+}
+
+.fp-modal-header {
+    padding: 24px 28px;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+}
+
+.fp-modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #212529;
+}
+
+.fp-modal-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #6c757d;
+    padding: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.fp-modal-close:hover {
+    color: #212529;
+    background: #e9ecef;
+    transform: rotate(90deg);
+}
+
+.fp-modal-body {
+    padding: 28px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.fp-modal-footer {
+    padding: 20px 28px;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    background: #f8f9fa;
+}
+
+.fp-modal-footer .button {
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.fp-modal-footer .button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+.fp-modal-body .form-table th {
+    width: 150px;
+    padding: 12px 0;
+    font-weight: 600;
+    color: #495057;
+}
+
+.fp-modal-body .form-table td {
+    padding: 12px 0;
+}
+
+.fp-modal-body input[type="text"],
+.fp-modal-body input[type="date"],
+.fp-modal-body textarea,
+.fp-modal-body select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.fp-modal-body input[type="text"]:focus,
+.fp-modal-body input[type="date"]:focus,
+.fp-modal-body textarea:focus,
+.fp-modal-body select:focus {
+    outline: none;
+    border-color: #4dabf7;
+    box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.1);
+}
+
+.fp-modal-body textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.fp-modal-body .required {
+    color: #ff6b6b;
+    font-weight: 600;
+}
+
+/* Pulsante aggiungi task */
+#fp-add-task-btn {
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+#fp-add-task-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* Responsive */
+@media (max-width: 782px) {
+    .fp-task-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+    
+    .fp-stat-card {
+        padding: 20px;
+    }
+    
+    .fp-stat-card .fp-stat-value {
+        font-size: 36px;
+    }
+    
+    .fp-filter-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .fp-search-input {
+        width: 100%;
+    }
+    
+    .fp-modal {
+        min-width: 90vw;
+        max-width: 90vw;
+        margin: 20px;
+    }
+    
+    .fp-modal-header,
+    .fp-modal-body,
+    .fp-modal-footer {
+        padding: 20px;
+    }
+    
+    .fp-tasks-table {
+        font-size: 13px;
+    }
+    
+    .fp-tasks-table th,
+    .fp-tasks-table td {
+        padding: 12px 8px;
+    }
+}
