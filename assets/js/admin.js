@@ -617,10 +617,12 @@
         },
         
         openTemplateSelectModal: function() {
-            var $btn = $(this);
             // Controlla se ci sono template
             if ($('#fp-template-select-modal').length === 0 || $('.fp-template-card').length === 0) {
-                alert('Nessun template disponibile. Vai alla pagina Template per crearne uno.');
+                var confirmRedirect = confirm('Nessun template disponibile. Vuoi andare alla pagina Template per crearne uno?');
+                if (confirmRedirect) {
+                    window.location.href = fpTaskAgenda.templatesPageUrl || (window.location.href.split('?')[0] + '?page=fp-task-agenda-templates');
+                }
                 return;
             }
             $('#fp-template-select-modal-backdrop, #fp-template-select-modal').fadeIn(200);

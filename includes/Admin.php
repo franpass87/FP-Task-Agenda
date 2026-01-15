@@ -124,6 +124,7 @@ class Admin {
             wp_localize_script('fp-task-agenda-admin', 'fpTaskAgenda', array(
                 'ajaxUrl' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('fp_task_agenda_nonce'),
+                'templatesPageUrl' => admin_url('admin.php?page=fp-task-agenda-templates'),
                 'strings' => array(
                     'addTask' => __('Aggiungi Task', 'fp-task-agenda'),
                     'editTask' => __('Modifica Task', 'fp-task-agenda'),
