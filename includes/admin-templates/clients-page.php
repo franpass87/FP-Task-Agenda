@@ -117,19 +117,24 @@ if (!defined('ABSPATH')) {
 <div class="fp-modal-backdrop" id="fp-client-modal-backdrop" style="display: none;"></div>
 
 <script>
-jQuery(document).ready(function($) {
-    // Verifica che fpTaskAgenda sia disponibile
+// Definisci le variabili se non sono già state caricate da admin.js
+(function() {
     if (typeof fpTaskAgenda === 'undefined') {
-        console.error('fpTaskAgenda non è definito');
-        // Fallback: definisci le variabili necessarie
-        if (typeof ajaxurl === 'undefined') {
-            window.ajaxurl = '<?php echo esc_js(admin_url('admin-ajax.php')); ?>';
-        }
         window.fpTaskAgenda = {
-            ajaxUrl: ajaxurl,
-            nonce: '<?php echo esc_js(wp_create_nonce('fp_task_agenda_nonce')); ?>'
+            ajaxUrl: '<?php echo esc_js(admin_url('admin-ajax.php')); ?>',
+            nonce: '<?php echo esc_js(wp_create_nonce('fp_task_agenda_nonce')); ?>',
+            strings: {
+                addTask: '<?php echo esc_js(__('Aggiungi Task', 'fp-task-agenda')); ?>',
+                editTask: '<?php echo esc_js(__('Modifica Task', 'fp-task-agenda')); ?>',
+                confirmDelete: '<?php echo esc_js(__('Sei sicuro di voler eliminare questo task?', 'fp-task-agenda')); ?>',
+                error: '<?php echo esc_js(__('Si è verificato un errore', 'fp-task-agenda')); ?>',
+                success: '<?php echo esc_js(__('Operazione completata con successo', 'fp-task-agenda')); ?>'
+            }
         };
     }
+})();
+
+jQuery(document).ready(function($) {
     
     // Gestione clienti
     $('#fp-add-client-btn').on('click', function() {
