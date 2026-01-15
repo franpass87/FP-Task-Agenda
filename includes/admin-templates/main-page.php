@@ -25,19 +25,64 @@ if (!defined('ABSPATH')) {
         <?php echo esc_html__('Aggiungi Task', 'fp-task-agenda'); ?>
     </button>
     
-    <div class="wp-heading-inline" style="display: inline-block; margin-left: 10px;">
-        <select id="fp-create-from-template" style="height: 32px; padding: 4px 8px;">
-            <option value=""><?php echo esc_html__('Crea da template...', 'fp-task-agenda'); ?></option>
-            <?php 
-            $templates = \FP\TaskAgenda\Template::get_all();
-            foreach ($templates as $template): 
-            ?>
-                <option value="<?php echo esc_attr($template->id); ?>"><?php echo esc_html($template->name); ?></option>
-            <?php endforeach; ?>
-        </select>
-    </div>
+    <?php 
+    $templates = \FP\TaskAgenda\Template::get_all();
+    if (!empty($templates)): 
+    ?>
+        <button type="button" class="page-title-action" id="fp-create-from-template-btn">
+            <?php echo esc_html__('Crea da Template', 'fp-task-agenda'); ?>
+        </button>
+    <?php endif; ?>
     
     <hr class="wp-header-end">
+    
+    <!-- Modal Seleziona Template -->
+    <?php if (!empty($templates)): ?>
+    <div id="fp-template-select-modal" class="fp-modal" style="display: none;">
+        <div class="fp-modal-content" style="max-width: 600px;">
+            <div class="fp-modal-header">
+                <h2><?php echo esc_html__('Seleziona Template', 'fp-task-agenda'); ?></h2>
+                <button type="button" class="fp-modal-close">&times;</button>
+            </div>
+            <div class="fp-modal-body">
+                <p class="description" style="margin-bottom: 20px;">
+                    <?php echo esc_html__('Scegli un template per creare rapidamente un nuovo task:', 'fp-task-agenda'); ?>
+                </p>
+                <div class="fp-templates-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
+                    <?php foreach ($templates as $template): ?>
+                        <?php
+                        $priority_class = \FP\TaskAgenda\Task::get_priority_class($template->priority);
+                        $priorities = \FP\TaskAgenda\Task::get_priorities();
+                        ?>
+                        <div class="fp-template-card" data-template-id="<?php echo esc_attr($template->id); ?>" style="border: 1px solid #dee2e6; border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.2s ease; background: white;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                <strong style="font-size: 14px; color: #212529;"><?php echo esc_html($template->name); ?></strong>
+                                <span class="fp-priority-badge fp-priority-<?php echo esc_attr($template->priority); ?>" style="font-size: 10px; padding: 3px 8px;">
+                                    <?php echo esc_html($priorities[$template->priority] ?? $template->priority); ?>
+                                </span>
+                            </div>
+                            <div style="font-size: 13px; color: #6c757d; margin-bottom: 8px;">
+                                <?php echo esc_html($template->title); ?>
+                            </div>
+                            <?php if ($template->client_id): 
+                                $client = \FP\TaskAgenda\Client::get($template->client_id);
+                            ?>
+                                <div style="font-size: 12px; color: #868e96;">
+                                    <span class="dashicons dashicons-businessman" style="font-size: 14px; width: 14px; height: 14px;"></span>
+                                    <?php echo $client ? esc_html($client->name) : ''; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <div class="fp-modal-footer">
+                <button type="button" class="button fp-modal-cancel"><?php echo esc_html__('Annulla', 'fp-task-agenda'); ?></button>
+            </div>
+        </div>
+    </div>
+    <div class="fp-modal-backdrop" id="fp-template-select-modal-backdrop" style="display: none;"></div>
+    <?php endif; ?>
     
     <!-- Statistiche -->
     <div class="fp-task-stats">

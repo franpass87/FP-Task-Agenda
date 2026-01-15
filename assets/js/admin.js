@@ -15,11 +15,24 @@
             // Apri modal aggiungi task
             $(document).on('click', '#fp-add-task-btn', this.openAddModal);
             
-            // Crea task da template
-            $(document).on('change', '#fp-create-from-template', this.createFromTemplate);
+            // Apri modal selezione template
+            $(document).on('click', '#fp-create-from-template-btn', this.openTemplateSelectModal);
+            
+            // Seleziona template dalla card
+            $(document).on('click', '.fp-template-card', this.selectTemplate);
             
             // Chiudi modal
             $(document).on('click', '.fp-modal-close, .fp-modal-cancel, .fp-modal-backdrop', this.closeModal);
+            
+            // Chiudi modal template select
+            $(document).on('click', '#fp-template-select-modal-backdrop, #fp-template-select-modal .fp-modal-cancel, #fp-template-select-modal .fp-modal-close', function() {
+                $('#fp-template-select-modal-backdrop, #fp-template-select-modal').fadeOut(200);
+            });
+            
+            // Previeni chiusura modal template select cliccando dentro
+            $(document).on('click', '#fp-template-select-modal', function(e) {
+                e.stopPropagation();
+            });
             
             // Salva task
             $(document).on('click', '.fp-modal-save', this.saveTask);
@@ -603,14 +616,15 @@
             });
         },
         
-        createFromTemplate: function() {
-            var templateId = $(this).val();
-            if (!templateId) {
-                return;
-            }
+        openTemplateSelectModal: function() {
+            $('#fp-template-select-modal-backdrop, #fp-template-select-modal').fadeIn(200);
+        },
+        
+        selectTemplate: function() {
+            var templateId = $(this).data('template-id');
             
-            // Reset dropdown
-            $(this).val('');
+            // Feedback visivo
+            $(this).css('transform', 'scale(0.98)');
             
             $.ajax({
                 url: fpTaskAgenda.ajaxUrl,
@@ -622,6 +636,8 @@
                 },
                 success: function(response) {
                     if (response.success) {
+                        // Chiudi modal
+                        $('#fp-template-select-modal-backdrop, #fp-template-select-modal').fadeOut(200);
                         TaskAgenda.showNotice(response.data.message || 'Task creato con successo', 'success');
                         setTimeout(function() {
                             window.location.reload();
@@ -632,6 +648,9 @@
                 },
                 error: function() {
                     TaskAgenda.showNotice(fpTaskAgenda.strings.error, 'error');
+                },
+                complete: function() {
+                    $('.fp-template-card').css('transform', '');
                 }
             });
         }
