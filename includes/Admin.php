@@ -100,7 +100,12 @@ class Admin {
      * Carica script e stili admin
      */
     public function enqueue_admin_assets($hook) {
-        if ($hook !== 'toplevel_page_fp-task-agenda' && $hook !== 'task-agenda_page_fp-task-agenda-clients' && $hook !== 'task-agenda_page_fp-task-agenda-templates') {
+        // Verifica se siamo in una delle pagine del plugin
+        $is_main_page = ($hook === 'toplevel_page_fp-task-agenda');
+        $is_clients_page = (strpos($hook, 'fp-task-agenda-clients') !== false);
+        $is_templates_page = (strpos($hook, 'fp-task-agenda-templates') !== false);
+        
+        if (!$is_main_page && !$is_clients_page && !$is_templates_page) {
             return;
         }
         
@@ -112,7 +117,7 @@ class Admin {
         );
         
         // Carica JavaScript per tutte le pagine
-        if ($hook === 'toplevel_page_fp-task-agenda' || $hook === 'task-agenda_page_fp-task-agenda-clients' || $hook === 'task-agenda_page_fp-task-agenda-templates') {
+        if ($is_main_page || $is_clients_page || $is_templates_page) {
             wp_enqueue_script(
                 'fp-task-agenda-admin',
                 FP_TASK_AGENDA_PLUGIN_URL . 'assets/js/admin.js',
