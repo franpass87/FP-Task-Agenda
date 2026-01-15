@@ -263,7 +263,12 @@
             var $select = $(this);
             var taskId = $select.data('task-id');
             var newPriority = $select.val();
-            var $row = $select.closest('tr');
+            var $row = $select.closest('.fp-task-row');
+            
+            // Fallback: se non trova con closest, cerca per data-task-id
+            if ($row.length === 0 || !$row.hasClass('fp-task-row')) {
+                $row = $('.fp-task-row[data-task-id="' + taskId + '"]');
+            }
             
             // Disabilita durante la richiesta
             $select.prop('disabled', true);
