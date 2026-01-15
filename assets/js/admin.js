@@ -85,6 +85,7 @@
                 $('#fp-task-status').val(task.status || 'pending');
                 $('#fp-task-due-date').val(task.due_date ? task.due_date.split(' ')[0] : '');
                 $('#fp-task-client').val(task.client_id || '');
+                $('#fp-task-recurrence').val(task.recurrence_type || '');
                 
                 $('#fp-modal-title').text(fpTaskAgenda.strings.editTask || 'Modifica Task');
                 $('#fp-task-status-row').show();
@@ -136,7 +137,8 @@
                 description: $('#fp-task-description').val(),
                 priority: $('#fp-task-priority').val(),
                 due_date: $('#fp-task-due-date').val(),
-                client_id: $('#fp-task-client').val() || ''
+                client_id: $('#fp-task-client').val() || '',
+                recurrence_type: $('#fp-task-recurrence').val() || ''
             };
             
             if (isEdit) {
