@@ -19,19 +19,19 @@ if (!defined('ABSPATH')) {
     
     <hr class="wp-header-end">
     
-    <p class="description">
+    <p class="description" style="margin-bottom: 24px;">
         <?php echo esc_html__('Crea template riutilizzabili per creare task rapidamente. I template possono includere priorità, cliente, ricorrenza e offset data di scadenza.', 'fp-task-agenda'); ?>
     </p>
     
     <!-- Lista Template -->
-    <div class="fp-templates-container">
+    <div class="fp-tasks-container">
         <?php if (empty($templates)): ?>
             <div class="fp-no-templates">
                 <p><?php echo esc_html__('Nessun template trovato.', 'fp-task-agenda'); ?></p>
                 <p><?php echo esc_html__('Clicca su "Aggiungi Template" per creare il tuo primo template.', 'fp-task-agenda'); ?></p>
             </div>
         <?php else: ?>
-            <table class="wp-list-table widefat fixed striped fp-templates-table">
+            <table class="fp-tasks-table">
                 <thead>
                     <tr>
                         <th style="width: 200px;"><?php echo esc_html__('Nome Template', 'fp-task-agenda'); ?></th>
@@ -54,7 +54,10 @@ if (!defined('ABSPATH')) {
                             'monthly' => __('Mensile', 'fp-task-agenda')
                         );
                         ?>
-                        <tr class="fp-template-row" data-template-id="<?php echo esc_attr($template->id); ?>">
+                        <?php
+                        $priority_class = \FP\TaskAgenda\Task::get_priority_class($template->priority);
+                        ?>
+                        <tr class="fp-task-row <?php echo esc_attr($priority_class); ?>" data-template-id="<?php echo esc_attr($template->id); ?>">
                             <td>
                                 <strong class="fp-template-name"><?php echo esc_html($template->name); ?></strong>
                             </td>

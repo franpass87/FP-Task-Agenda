@@ -912,7 +912,8 @@
 
 /* Pulsante aggiungi task */
 #fp-add-task-btn,
-#fp-create-from-template-btn {
+#fp-create-from-template-btn,
+#fp-add-template-btn {
     border-radius: 8px;
     padding: 8px 20px;
     font-weight: 600;
@@ -921,7 +922,8 @@
 }
 
 #fp-add-task-btn:hover,
-#fp-create-from-template-btn:hover:not(.fp-btn-disabled) {
+#fp-create-from-template-btn:hover:not(.fp-btn-disabled),
+#fp-add-template-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
 }
