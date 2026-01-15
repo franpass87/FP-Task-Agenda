@@ -974,16 +974,69 @@
 .fp-view-toggle {
     margin: 15px 0;
     text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0;
 }
 
 .fp-view-btn {
-    margin-left: 5px;
+    margin: 0;
+    padding: 8px 16px;
+    border-radius: 0;
+    border: 1px solid #c3c4c7;
+    background: #ffffff;
+    color: #50575e;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: none;
+    height: auto;
+    line-height: 1.5;
+}
+
+.fp-view-btn:first-child {
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+}
+
+.fp-view-btn:last-child {
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+    border-left: none;
+}
+
+.fp-view-btn:hover {
+    background: #f6f7f7;
+    border-color: #8c8f94;
+    color: #1d2327;
+    z-index: 1;
+    position: relative;
 }
 
 .fp-view-btn.active {
-    background: #4dabf7;
-    color: white;
-    border-color: #4dabf7;
+    background: linear-gradient(135deg, #4dabf7 0%, #339af0 100%);
+    color: #ffffff;
+    border-color: #339af0;
+    box-shadow: 0 2px 4px rgba(77, 171, 247, 0.3);
+    z-index: 2;
+    position: relative;
+}
+
+.fp-view-btn.active:hover {
+    background: linear-gradient(135deg, #339af0 0%, #228be6 100%);
+    border-color: #228be6;
+    box-shadow: 0 3px 6px rgba(77, 171, 247, 0.4);
+}
+
+.fp-view-btn .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
 }
 
 /* Vista Kanban */
