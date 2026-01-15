@@ -27,12 +27,10 @@ if (!defined('ABSPATH')) {
     
     <?php 
     $templates = \FP\TaskAgenda\Template::get_all();
-    if (!empty($templates)): 
     ?>
-        <button type="button" class="page-title-action" id="fp-create-from-template-btn">
-            <?php echo esc_html__('Crea da Template', 'fp-task-agenda'); ?>
-        </button>
-    <?php endif; ?>
+    <button type="button" class="page-title-action" id="fp-create-from-template-btn" <?php echo empty($templates) ? 'style="opacity: 0.6; cursor: not-allowed;" title="' . esc_attr__('Crea prima un template nella pagina Template', 'fp-task-agenda') . '"' : ''; ?>>
+        <?php echo esc_html__('Crea da Template', 'fp-task-agenda'); ?>
+    </button>
     
     <hr class="wp-header-end">
     

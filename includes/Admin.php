@@ -795,6 +795,17 @@ class Admin {
     }
     
     /**
+     * Renderizza la pagina gestione template
+     */
+    public function render_templates_page() {
+        // Ottieni tutti i template
+        $templates = \FP\TaskAgenda\Template::get_all();
+        $clients = \FP\TaskAgenda\Client::get_all();
+        
+        include FP_TASK_AGENDA_PLUGIN_DIR . 'includes/admin-templates/templates-page.php';
+    }
+    
+    /**
      * Renderizza la pagina gestione clienti
      */
     public function render_clients_page() {
