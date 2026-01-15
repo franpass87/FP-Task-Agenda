@@ -194,13 +194,19 @@ if (!defined('ABSPATH')) {
                                 <input type="checkbox" class="fp-task-checkbox" name="task[]" value="<?php echo esc_attr($task->id); ?>" <?php checked($is_completed); ?> data-task-id="<?php echo esc_attr($task->id); ?>">
                             </th>
                             <td>
-                                <span class="fp-priority-badge fp-priority-<?php echo esc_attr($task->priority); ?>">
-                                    <span class="dashicons <?php echo esc_attr($priority_icon); ?>"></span>
+                                <select class="fp-priority-quick-change fp-priority-badge fp-priority-<?php echo esc_attr($task->priority); ?>" data-task-id="<?php echo esc_attr($task->id); ?>" data-current-priority="<?php echo esc_attr($task->priority); ?>">
                                     <?php 
                                     $priorities = \FP\TaskAgenda\Task::get_priorities();
-                                    echo esc_html($priorities[$task->priority] ?? $task->priority);
+                                    foreach ($priorities as $priority_key => $priority_label):
+                                        $priority_class = \FP\TaskAgenda\Task::get_priority_class($priority_key);
+                                        $priority_icon = \FP\TaskAgenda\Task::get_priority_icon($priority_key);
+                                        $selected = ($priority_key === $task->priority) ? 'selected' : '';
                                     ?>
-                                </span>
+                                        <option value="<?php echo esc_attr($priority_key); ?>" <?php echo $selected; ?> data-class="<?php echo esc_attr($priority_class); ?>" data-icon="<?php echo esc_attr($priority_icon); ?>">
+                                            <?php echo esc_html($priority_label); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </td>
                             <td>
                                 <?php if (!empty($task->client_id)): ?>

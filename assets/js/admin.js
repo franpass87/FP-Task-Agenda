@@ -33,6 +33,9 @@
             // Cambio stato rapido
             $(document).on('change', '.fp-status-quick-change', this.quickChangeStatus);
             
+            // Cambio priorità rapido
+            $(document).on('change', '.fp-priority-quick-change', this.quickChangePriority);
+            
             // Select all checkbox
             $(document).on('change', '#cb-select-all', this.selectAllTasks);
             
@@ -254,6 +257,71 @@
             $('#fp-task-modal').fadeOut(200);
             $('#fp-modal-backdrop').fadeOut(200);
             TaskAgenda.resetForm();
+        },
+        
+        quickChangePriority: function(e) {
+            var $select = $(this);
+            var taskId = $select.data('task-id');
+            var newPriority = $select.val();
+            var $row = $select.closest('tr');
+            
+            // Disabilita durante la richiesta
+            $select.prop('disabled', true);
+            
+            $.ajax({
+                url: fpTaskAgenda.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'fp_task_agenda_quick_change_priority',
+                    nonce: fpTaskAgenda.nonce,
+                    id: taskId,
+                    priority: newPriority
+                },
+                success: function(response) {
+                    if (response.success && response.data) {
+                        var data = response.data;
+                        
+                        // Aggiorna le classi del select e della riga
+                        var oldClasses = $select.attr('class').match(/fp-priority-\w+/g);
+                        if (oldClasses) {
+                            oldClasses.forEach(function(cls) {
+                                $select.removeClass(cls);
+                                $row.removeClass(cls);
+                            });
+                        }
+                        
+                        // Aggiungi nuove classi
+                        var newPriorityClass = 'fp-priority-' + newPriority;
+                        var rowPriorityClass = 'priority-' + newPriority;
+                        $select.addClass(newPriorityClass);
+                        $select.attr('data-current-priority', newPriority);
+                        $row.addClass(rowPriorityClass);
+                        
+                        // Aggiorna l'opzione selezionata
+                        $select.find('option').prop('selected', false);
+                        $select.find('option[value="' + newPriority + '"]').prop('selected', true);
+                        
+                        // Feedback visivo opzionale
+                        $select.css('opacity', '0.7');
+                        setTimeout(function() {
+                            $select.css('opacity', '1');
+                        }, 200);
+                    } else {
+                        // Ripristina valore precedente in caso di errore
+                        var oldPriority = $select.data('current-priority');
+                        $select.val(oldPriority);
+                        alert(response.data?.message || fpTaskAgenda.strings.error || 'Errore');
+                    }
+                },
+                error: function() {
+                    var oldPriority = $select.data('current-priority');
+                    $select.val(oldPriority);
+                    alert(fpTaskAgenda.strings.error || 'Errore durante l\'aggiornamento');
+                },
+                complete: function() {
+                    $select.prop('disabled', false);
+                }
+            });
         },
         
         quickChangeStatus: function(e) {

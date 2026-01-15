@@ -36,6 +36,7 @@ class Admin {
         
         // AJAX handlers per azioni rapide e bulk
         add_action('wp_ajax_fp_task_agenda_quick_change_status', array($this, 'ajax_quick_change_status'));
+        add_action('wp_ajax_fp_task_agenda_quick_change_priority', array($this, 'ajax_quick_change_priority'));
         add_action('wp_ajax_fp_task_agenda_bulk_action', array($this, 'ajax_bulk_action'));
         
         // AJAX handlers per clienti
@@ -496,6 +497,43 @@ class Admin {
         
         $task = Database::get_task($id);
         wp_send_json_success(array('task' => $task, 'message' => __('Stato aggiornato', 'fp-task-agenda')));
+    }
+    
+    /**
+     * AJAX: Cambio priorità rapido da dropdown
+     */
+    public function ajax_quick_change_priority() {
+        check_ajax_referer('fp_task_agenda_nonce', 'nonce');
+        
+        $id = isset($_POST['id']) ? absint($_POST['id']) : 0;
+        $priority = isset($_POST['priority']) ? sanitize_text_field($_POST['priority']) : '';
+        
+        if (!$id) {
+            wp_send_json_error(array('message' => __('ID task non valido', 'fp-task-agenda')));
+        }
+        
+        if (!in_array($priority, array('low', 'normal', 'high', 'urgent'))) {
+            wp_send_json_error(array('message' => __('Priorità non valida', 'fp-task-agenda')));
+        }
+        
+        $result = Database::update_task($id, array('priority' => $priority));
+        
+        if (is_wp_error($result)) {
+            wp_send_json_error(array('message' => $result->get_error_message()));
+        }
+        
+        $task = Database::get_task($id);
+        $priority_class = \FP\TaskAgenda\Task::get_priority_class($priority);
+        $priority_icon = \FP\TaskAgenda\Task::get_priority_icon($priority);
+        $priorities = \FP\TaskAgenda\Task::get_priorities();
+        
+        wp_send_json_success(array(
+            'task' => $task,
+            'priority_class' => $priority_class,
+            'priority_icon' => $priority_icon,
+            'priority_label' => $priorities[$priority] ?? $priority,
+            'message' => __('Priorità aggiornata', 'fp-task-agenda')
+        ));
     }
     
     /**
