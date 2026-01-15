@@ -17,25 +17,25 @@ if (!defined('ABSPATH')) {
         <?php echo esc_html__('Aggiungi Cliente', 'fp-task-agenda'); ?>
     </button>
     
-    <button type="button" class="page-title-action" id="fp-sync-clients-btn" style="margin-left: 5px;">
+    <button type="button" class="page-title-action" id="fp-sync-clients-btn">
         <?php echo esc_html__('Sincronizza da FP Publisher', 'fp-task-agenda'); ?>
     </button>
     
     <hr class="wp-header-end">
     
-    <p class="description">
+    <p class="description" style="margin-bottom: 24px;">
         <?php echo esc_html__('Gestisci i tuoi clienti. Puoi sincronizzarli automaticamente da FP Publisher o aggiungerli manualmente.', 'fp-task-agenda'); ?>
     </p>
     
     <!-- Lista Clienti -->
-    <div class="fp-clients-container">
+    <div class="fp-tasks-container">
         <?php if (empty($clients)): ?>
-            <div class="fp-no-clients">
+            <div class="fp-no-templates">
                 <p><?php echo esc_html__('Nessun cliente trovato.', 'fp-task-agenda'); ?></p>
                 <p><?php echo esc_html__('Clicca su "Aggiungi Cliente" o "Sincronizza da FP Publisher" per iniziare.', 'fp-task-agenda'); ?></p>
             </div>
         <?php else: ?>
-            <table class="wp-list-table widefat fixed striped fp-clients-table">
+            <table class="fp-tasks-table">
                 <thead>
                     <tr>
                         <th style="width: 200px;"><?php echo esc_html__('Nome', 'fp-task-agenda'); ?></th>
@@ -61,15 +61,15 @@ if (!defined('ABSPATH')) {
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <div class="fp-client-actions">
+                                <div class="fp-template-actions">
                                     <?php if ($client->source === 'manual'): ?>
-                                        <button type="button" class="button-link fp-edit-client" data-client-id="<?php echo esc_attr($client->id); ?>">
-                                            <?php echo esc_html__('Modifica', 'fp-task-agenda'); ?>
-                                        </button>
-                                        <span class="separator">|</span>
-                                        <button type="button" class="button-link delete fp-delete-client" data-client-id="<?php echo esc_attr($client->id); ?>">
-                                            <?php echo esc_html__('Elimina', 'fp-task-agenda'); ?>
-                                        </button>
+                                    <button type="button" class="button-link fp-edit-client" data-client-id="<?php echo esc_attr($client->id); ?>">
+                                        <span class="dashicons dashicons-edit"></span> <?php echo esc_html__('Modifica', 'fp-task-agenda'); ?>
+                                    </button>
+                                    <span class="separator">|</span>
+                                    <button type="button" class="button-link delete fp-delete-client" data-client-id="<?php echo esc_attr($client->id); ?>">
+                                        <span class="dashicons dashicons-trash"></span> <?php echo esc_html__('Elimina', 'fp-task-agenda'); ?>
+                                    </button>
                                     <?php else: ?>
                                         <span class="fp-readonly-note"><?php echo esc_html__('Gestito da FP Publisher', 'fp-task-agenda'); ?></span>
                                     <?php endif; ?>
@@ -147,7 +147,7 @@ jQuery(document).ready(function($) {
     $('.fp-edit-client').on('click', function(e) {
         e.preventDefault();
         var clientId = $(this).data('client-id');
-        var $row = $(this).closest('.fp-client-row');
+        var $row = $(this).closest('.fp-task-row');
         var name = $row.find('.fp-client-name').text();
         
         $('#fp-client-modal-title').text('<?php echo esc_js(__('Modifica Cliente', 'fp-task-agenda')); ?>');
@@ -164,7 +164,7 @@ jQuery(document).ready(function($) {
         }
         
         var clientId = $(this).data('client-id');
-        var $row = $(this).closest('.fp-client-row');
+        var $row = $(this).closest('.fp-task-row');
         
         $.ajax({
             url: fpTaskAgenda.ajaxUrl,
