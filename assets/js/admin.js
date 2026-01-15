@@ -285,6 +285,7 @@
                         var priorityClasses = ['priority-low', 'priority-normal', 'priority-high', 'priority-urgent'];
                         var fpPriorityClasses = ['fp-priority-low', 'fp-priority-normal', 'fp-priority-high', 'fp-priority-urgent'];
                         
+                        // Rimuovi tutte le classi vecchie
                         priorityClasses.forEach(function(cls) {
                             $row.removeClass(cls);
                         });
@@ -293,6 +294,9 @@
                             $select.removeClass(cls);
                         });
                         
+                        // Forza un reflow per assicurarsi che le rimozioni vengano applicate
+                        $row[0].offsetHeight;
+                        
                         // Aggiungi nuove classi
                         var newPriorityClass = 'fp-priority-' + newPriority;
                         var rowPriorityClass = 'priority-' + newPriority;
@@ -300,11 +304,15 @@
                         $select.attr('data-current-priority', newPriority);
                         $row.addClass(rowPriorityClass);
                         
+                        // Forza un altro reflow per assicurarsi che le nuove classi vengano applicate
+                        $row[0].offsetHeight;
+                        
                         // Aggiorna l'opzione selezionata
                         $select.find('option').prop('selected', false);
                         $select.find('option[value="' + newPriority + '"]').prop('selected', true);
                         
-                        // Feedback visivo opzionale
+                        // Feedback visivo con animazione leggera
+                        $row.css('transition', 'background 0.3s ease, border-left 0.3s ease');
                         $select.css('opacity', '0.7');
                         setTimeout(function() {
                             $select.css('opacity', '1');
