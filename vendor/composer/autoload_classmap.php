@@ -8,7 +8,9 @@ $baseDir = dirname($vendorDir);
 return array(
     'Composer\\InstalledVersions' => $vendorDir . '/composer/InstalledVersions.php',
     'FP\\TaskAgenda\\Admin' => $baseDir . '/includes/Admin.php',
+    'FP\\TaskAgenda\\Client' => $baseDir . '/includes/Client.php',
     'FP\\TaskAgenda\\Database' => $baseDir . '/includes/Database.php',
     'FP\\TaskAgenda\\Plugin' => $baseDir . '/includes/Plugin.php',
     'FP\\TaskAgenda\\Task' => $baseDir . '/includes/Task.php',
+    'FP\\TaskAgenda\\Template' => $baseDir . '/includes/Template.php',
 );

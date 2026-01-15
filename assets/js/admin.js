@@ -15,6 +15,9 @@
             // Apri modal aggiungi task
             $(document).on('click', '#fp-add-task-btn', this.openAddModal);
             
+            // Crea task da template
+            $(document).on('change', '#fp-create-from-template', this.createFromTemplate);
+            
             // Chiudi modal
             $(document).on('click', '.fp-modal-close, .fp-modal-cancel, .fp-modal-backdrop', this.closeModal);
             
@@ -597,6 +600,39 @@
                         }
                     }
                 });
+            });
+        },
+        
+        createFromTemplate: function() {
+            var templateId = $(this).val();
+            if (!templateId) {
+                return;
+            }
+            
+            // Reset dropdown
+            $(this).val('');
+            
+            $.ajax({
+                url: fpTaskAgenda.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'fp_task_agenda_create_task_from_template',
+                    nonce: fpTaskAgenda.nonce,
+                    template_id: templateId
+                },
+                success: function(response) {
+                    if (response.success) {
+                        TaskAgenda.showNotice(response.data.message || 'Task creato con successo', 'success');
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 500);
+                    } else {
+                        TaskAgenda.showNotice(response.data.message || fpTaskAgenda.strings.error, 'error');
+                    }
+                },
+                error: function() {
+                    TaskAgenda.showNotice(fpTaskAgenda.strings.error, 'error');
+                }
             });
         }
     };

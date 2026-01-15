@@ -25,6 +25,18 @@ if (!defined('ABSPATH')) {
         <?php echo esc_html__('Aggiungi Task', 'fp-task-agenda'); ?>
     </button>
     
+    <div class="wp-heading-inline" style="display: inline-block; margin-left: 10px;">
+        <select id="fp-create-from-template" style="height: 32px; padding: 4px 8px;">
+            <option value=""><?php echo esc_html__('Crea da template...', 'fp-task-agenda'); ?></option>
+            <?php 
+            $templates = \FP\TaskAgenda\Template::get_all();
+            foreach ($templates as $template): 
+            ?>
+                <option value="<?php echo esc_attr($template->id); ?>"><?php echo esc_html($template->name); ?></option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+    
     <hr class="wp-header-end">
     
     <!-- Statistiche -->

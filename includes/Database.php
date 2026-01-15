@@ -51,6 +51,28 @@ class Database {
         ) $charset_collate;";
         dbDelta($sql_clients);
         
+        // Tabella template task
+        $templates_table = $wpdb->prefix . 'fp_task_agenda_templates';
+        $sql_templates = "CREATE TABLE IF NOT EXISTS $templates_table (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            name varchar(255) NOT NULL,
+            title varchar(255) NOT NULL,
+            description text,
+            priority varchar(20) DEFAULT 'normal',
+            client_id bigint(20) NULL,
+            due_date_offset int(11) DEFAULT 0,
+            recurrence_type varchar(20) NULL,
+            recurrence_interval int(11) DEFAULT 1,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
+            user_id bigint(20) NOT NULL,
+            PRIMARY KEY  (id),
+            KEY user_id (user_id),
+            KEY client_id (client_id),
+            KEY name (name)
+        ) $charset_collate;";
+        dbDelta($sql_templates);
+        
         // Tabella task (aggiornata con client_id)
         $table_name = $wpdb->prefix . 'fp_task_agenda';
         $sql = "CREATE TABLE IF NOT EXISTS $table_name (

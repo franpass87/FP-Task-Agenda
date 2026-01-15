@@ -45,6 +45,14 @@ class Admin {
         add_action('wp_ajax_fp_task_agenda_update_client', array($this, 'ajax_update_client'));
         add_action('wp_ajax_fp_task_agenda_delete_client', array($this, 'ajax_delete_client'));
         add_action('wp_ajax_fp_task_agenda_sync_clients', array($this, 'ajax_sync_clients'));
+        
+        // AJAX handlers per template
+        add_action('wp_ajax_fp_task_agenda_get_templates', array($this, 'ajax_get_templates'));
+        add_action('wp_ajax_fp_task_agenda_add_template', array($this, 'ajax_add_template'));
+        add_action('wp_ajax_fp_task_agenda_update_template', array($this, 'ajax_update_template'));
+        add_action('wp_ajax_fp_task_agenda_delete_template', array($this, 'ajax_delete_template'));
+        add_action('wp_ajax_fp_task_agenda_get_template', array($this, 'ajax_get_template'));
+        add_action('wp_ajax_fp_task_agenda_create_task_from_template', array($this, 'ajax_create_task_from_template'));
     }
     
     /**
@@ -77,13 +85,22 @@ class Admin {
             'fp-task-agenda-clients',
             array($this, 'render_clients_page')
         );
+        
+        add_submenu_page(
+            'fp-task-agenda',
+            __('Template', 'fp-task-agenda'),
+            __('Template', 'fp-task-agenda'),
+            'read',
+            'fp-task-agenda-templates',
+            array($this, 'render_templates_page')
+        );
     }
     
     /**
      * Carica script e stili admin
      */
     public function enqueue_admin_assets($hook) {
-        if ($hook !== 'toplevel_page_fp-task-agenda' && $hook !== 'task-agenda_page_fp-task-agenda-clients') {
+        if ($hook !== 'toplevel_page_fp-task-agenda' && $hook !== 'task-agenda_page_fp-task-agenda-clients' && $hook !== 'task-agenda_page_fp-task-agenda-templates') {
             return;
         }
         
@@ -94,8 +111,8 @@ class Admin {
             FP_TASK_AGENDA_VERSION
         );
         
-        // Carica JavaScript per entrambe le pagine
-        if ($hook === 'toplevel_page_fp-task-agenda' || $hook === 'task-agenda_page_fp-task-agenda-clients') {
+        // Carica JavaScript per tutte le pagine
+        if ($hook === 'toplevel_page_fp-task-agenda' || $hook === 'task-agenda_page_fp-task-agenda-clients' || $hook === 'task-agenda_page_fp-task-agenda-templates') {
             wp_enqueue_script(
                 'fp-task-agenda-admin',
                 FP_TASK_AGENDA_PLUGIN_URL . 'assets/js/admin.js',
@@ -500,6 +517,163 @@ class Admin {
         }
         
         wp_send_json_success($result);
+    }
+    
+    /**
+     * AJAX: Ottieni tutti i template
+     */
+    public function ajax_get_templates() {
+        check_ajax_referer('fp_task_agenda_nonce', 'nonce');
+        
+        $templates = \FP\TaskAgenda\Template::get_all();
+        wp_send_json_success(array('templates' => $templates));
+    }
+    
+    /**
+     * AJAX: Ottieni un template
+     */
+    public function ajax_get_template() {
+        check_ajax_referer('fp_task_agenda_nonce', 'nonce');
+        
+        $id = isset($_POST['id']) ? absint($_POST['id']) : 0;
+        if (!$id) {
+            wp_send_json_error(array('message' => __('ID template non valido', 'fp-task-agenda')));
+        }
+        
+        $template = \FP\TaskAgenda\Template::get($id);
+        if (!$template) {
+            wp_send_json_error(array('message' => __('Template non trovato', 'fp-task-agenda')));
+        }
+        
+        wp_send_json_success(array('template' => $template));
+    }
+    
+    /**
+     * AJAX: Aggiungi template
+     */
+    public function ajax_add_template() {
+        check_ajax_referer('fp_task_agenda_nonce', 'nonce');
+        
+        $name = isset($_POST['name']) ? sanitize_text_field($_POST['name']) : '';
+        $title = isset($_POST['title']) ? sanitize_text_field($_POST['title']) : '';
+        
+        if (empty($name)) {
+            wp_send_json_error(array('message' => __('Il nome del template è obbligatorio', 'fp-task-agenda')));
+        }
+        
+        if (empty($title)) {
+            wp_send_json_error(array('message' => __('Il titolo del task è obbligatorio', 'fp-task-agenda')));
+        }
+        
+        $data = array(
+            'name' => $name,
+            'title' => $title,
+            'description' => isset($_POST['description']) ? sanitize_textarea_field($_POST['description']) : '',
+            'priority' => isset($_POST['priority']) ? sanitize_text_field($_POST['priority']) : 'normal',
+            'client_id' => isset($_POST['client_id']) && !empty($_POST['client_id']) ? absint($_POST['client_id']) : null,
+            'due_date_offset' => isset($_POST['due_date_offset']) ? intval($_POST['due_date_offset']) : 0,
+            'recurrence_type' => isset($_POST['recurrence_type']) && !empty($_POST['recurrence_type']) ? sanitize_text_field($_POST['recurrence_type']) : null,
+            'recurrence_interval' => isset($_POST['recurrence_interval']) ? absint($_POST['recurrence_interval']) : 1
+        );
+        
+        $result = \FP\TaskAgenda\Template::create($data);
+        
+        if (is_wp_error($result)) {
+            wp_send_json_error(array('message' => $result->get_error_message()));
+        }
+        
+        $template = \FP\TaskAgenda\Template::get($result);
+        wp_send_json_success(array('template' => $template, 'message' => __('Template aggiunto con successo', 'fp-task-agenda')));
+    }
+    
+    /**
+     * AJAX: Aggiorna template
+     */
+    public function ajax_update_template() {
+        check_ajax_referer('fp_task_agenda_nonce', 'nonce');
+        
+        $id = isset($_POST['id']) ? absint($_POST['id']) : 0;
+        if (!$id) {
+            wp_send_json_error(array('message' => __('ID template non valido', 'fp-task-agenda')));
+        }
+        
+        $data = array();
+        if (isset($_POST['name'])) {
+            $data['name'] = sanitize_text_field($_POST['name']);
+        }
+        if (isset($_POST['title'])) {
+            $data['title'] = sanitize_text_field($_POST['title']);
+        }
+        if (isset($_POST['description'])) {
+            $data['description'] = sanitize_textarea_field($_POST['description']);
+        }
+        if (isset($_POST['priority'])) {
+            $data['priority'] = sanitize_text_field($_POST['priority']);
+        }
+        if (isset($_POST['client_id'])) {
+            $data['client_id'] = !empty($_POST['client_id']) ? absint($_POST['client_id']) : null;
+        }
+        if (isset($_POST['due_date_offset'])) {
+            $data['due_date_offset'] = intval($_POST['due_date_offset']);
+        }
+        if (isset($_POST['recurrence_type'])) {
+            $data['recurrence_type'] = !empty($_POST['recurrence_type']) ? sanitize_text_field($_POST['recurrence_type']) : null;
+        }
+        if (isset($_POST['recurrence_interval'])) {
+            $data['recurrence_interval'] = absint($_POST['recurrence_interval']);
+        }
+        
+        $result = \FP\TaskAgenda\Template::update($id, $data);
+        
+        if (is_wp_error($result)) {
+            wp_send_json_error(array('message' => $result->get_error_message()));
+        }
+        
+        $template = \FP\TaskAgenda\Template::get($id);
+        wp_send_json_success(array('template' => $template, 'message' => __('Template aggiornato con successo', 'fp-task-agenda')));
+    }
+    
+    /**
+     * AJAX: Elimina template
+     */
+    public function ajax_delete_template() {
+        check_ajax_referer('fp_task_agenda_nonce', 'nonce');
+        
+        $id = isset($_POST['id']) ? absint($_POST['id']) : 0;
+        if (!$id) {
+            wp_send_json_error(array('message' => __('ID template non valido', 'fp-task-agenda')));
+        }
+        
+        $result = \FP\TaskAgenda\Template::delete($id);
+        
+        if (is_wp_error($result)) {
+            wp_send_json_error(array('message' => $result->get_error_message()));
+        }
+        
+        wp_send_json_success(array('message' => __('Template eliminato con successo', 'fp-task-agenda')));
+    }
+    
+    /**
+     * AJAX: Crea task da template
+     */
+    public function ajax_create_task_from_template() {
+        check_ajax_referer('fp_task_agenda_nonce', 'nonce');
+        
+        $template_id = isset($_POST['template_id']) ? absint($_POST['template_id']) : 0;
+        if (!$template_id) {
+            wp_send_json_error(array('message' => __('ID template non valido', 'fp-task-agenda')));
+        }
+        
+        $custom_due_date = isset($_POST['due_date']) && !empty($_POST['due_date']) ? sanitize_text_field($_POST['due_date']) : null;
+        
+        $result = \FP\TaskAgenda\Template::create_task_from_template($template_id, $custom_due_date);
+        
+        if (is_wp_error($result)) {
+            wp_send_json_error(array('message' => $result->get_error_message()));
+        }
+        
+        $task = Database::get_task($result);
+        wp_send_json_success(array('task' => $task, 'message' => __('Task creato dal template con successo', 'fp-task-agenda')));
     }
     
     /**

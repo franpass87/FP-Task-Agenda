@@ -1174,3 +1174,52 @@
         overflow-y: auto;
     }
 }
+
+/* Pagina Template */
+.fp-no-templates {
+    text-align: center;
+    padding: 60px 20px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 2px dashed #dee2e6;
+}
+
+.fp-templates-table {
+    margin-top: 20px;
+}
+
+.fp-template-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.fp-template-actions .button-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    font-size: 13px;
+}
+
+.fp-template-actions .separator {
+    color: #dee2e6;
+}
+
+#fp-create-from-template {
+    border-radius: 6px;
+    border: 1px solid #c3c4c7;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#fp-create-from-template:hover {
+    border-color: #8c8f94;
+}
+
+#fp-create-from-template:focus {
+    border-color: #4dabf7;
+    outline: none;
+    box-shadow: 0 0 0 1px #4dabf7;
+}
