@@ -728,21 +728,34 @@
     font-size: 12px;
 }
 
-/* Empty states */
+/* Empty states - usa lo stesso stile di fp-no-templates */
 .fp-no-tasks,
 .fp-no-clients {
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-    border: 2px dashed #dee2e6;
-    border-radius: 12px;
-    padding: 60px 40px;
     text-align: center;
-    color: #6c757d;
+    padding: 60px 20px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+    margin-top: 24px;
 }
 
 .fp-no-tasks p,
 .fp-no-clients p {
-    font-size: 16px;
     margin: 0;
+}
+
+.fp-no-tasks p:first-child,
+.fp-no-clients p:first-child {
+    font-size: 16px;
+    color: #495057;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.fp-no-tasks p:last-child,
+.fp-no-clients p:last-child {
+    font-size: 14px;
+    color: #6c757d;
 }
 
 /* Modal */
@@ -913,7 +926,9 @@
 /* Pulsante aggiungi task */
 #fp-add-task-btn,
 #fp-create-from-template-btn,
-#fp-add-template-btn {
+#fp-add-template-btn,
+#fp-add-client-btn,
+#fp-sync-clients-btn {
     border-radius: 8px;
     padding: 8px 20px;
     font-weight: 600;
@@ -923,7 +938,9 @@
 
 #fp-add-task-btn:hover,
 #fp-create-from-template-btn:hover:not(.fp-btn-disabled),
-#fp-add-template-btn:hover {
+#fp-add-template-btn:hover,
+#fp-add-client-btn:hover,
+#fp-sync-clients-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
 }
