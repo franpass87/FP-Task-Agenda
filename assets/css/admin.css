@@ -245,6 +245,10 @@
     letter-spacing: 0.5px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
     transition: all 0.2s ease;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 .fp-priority-badge:hover {
@@ -298,6 +302,28 @@
 }
 
 /* Assicura che le colonne abbiano dimensioni fisse */
+/* Colonna Priorità (2° elemento dopo checkbox) */
+.fp-tasks-table thead tr th:nth-child(2),
+.fp-tasks-table tbody tr td:nth-child(2),
+.fp-tasks-table thead tr td:nth-child(2) {
+    width: 120px !important;
+    min-width: 120px;
+    max-width: 120px;
+    overflow: hidden;
+    word-wrap: break-word;
+    position: relative;
+}
+
+/* Limita il badge priorità all'interno della cella */
+.fp-tasks-table tbody tr td:nth-child(2) .fp-priority-badge {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    box-sizing: border-box;
+}
+
 /* Colonna Stato (7° elemento dopo checkbox td/th) */
 .fp-tasks-table thead tr th:nth-child(7),
 .fp-tasks-table tbody tr td:nth-child(7),

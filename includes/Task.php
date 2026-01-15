@@ -77,9 +77,15 @@ class Task {
             return '';
         }
         
-        $now = current_time('timestamp');
-        $diff = $timestamp - $now;
-        $days = floor($diff / DAY_IN_SECONDS);
+        // Estrai solo la data (senza ora) per il confronto
+        $due_date = date('Y-m-d', $timestamp);
+        $today = current_time('Y-m-d');
+        
+        // Calcola la differenza in giorni usando le date
+        $due_datetime = new \DateTime($due_date);
+        $today_datetime = new \DateTime($today);
+        $diff = $today_datetime->diff($due_datetime);
+        $days = (int) $diff->format('%r%a'); // %r per il segno, %a per i giorni assoluti
         
         if ($days < 0) {
             return sprintf(__('Scaduto %d giorni fa', 'fp-task-agenda'), abs($days));
@@ -105,9 +111,15 @@ class Task {
             return false;
         }
         
-        $now = current_time('timestamp');
-        $diff = $timestamp - $now;
-        $days = floor($diff / DAY_IN_SECONDS);
+        // Estrai solo la data (senza ora) per il confronto
+        $due_date = date('Y-m-d', $timestamp);
+        $today = current_time('Y-m-d');
+        
+        // Calcola la differenza in giorni usando le date
+        $due_datetime = new \DateTime($due_date);
+        $today_datetime = new \DateTime($today);
+        $diff = $today_datetime->diff($due_datetime);
+        $days = (int) $diff->format('%r%a'); // %r per il segno, %a per i giorni assoluti
         
         return $days >= 0 && $days <= 3;
     }

@@ -117,23 +117,13 @@ if (!defined('ABSPATH')) {
                         <td class="manage-column column-cb check-column" style="width: 40px;">
                             <input id="cb-select-all" type="checkbox">
                         </td>
-                        <th style="width: 100px;" class="sortable <?php echo ($orderby === 'priority') ? 'sorted ' . strtolower($order) : ''; ?>">
+                        <th style="width: 120px;" class="sortable <?php echo ($orderby === 'priority') ? 'sorted ' . strtolower($order) : ''; ?>">
                             <?php
                             $order_priority = ($orderby === 'priority' && $order === 'ASC') ? 'DESC' : 'ASC';
                             $url_priority = add_query_arg(array('orderby' => 'priority', 'order' => $order_priority), remove_query_arg(array('paged')));
                             ?>
                             <a href="<?php echo esc_url($url_priority); ?>">
                                 <span><?php echo esc_html__('Priorità', 'fp-task-agenda'); ?></span>
-                                <span class="sorting-indicator"></span>
-                            </a>
-                        </th>
-                        <th class="sortable <?php echo ($orderby === 'title') ? 'sorted ' . strtolower($order) : ''; ?>">
-                            <?php
-                            $order_title = ($orderby === 'title' && $order === 'ASC') ? 'DESC' : 'ASC';
-                            $url_title = add_query_arg(array('orderby' => 'title', 'order' => $order_title), remove_query_arg(array('paged')));
-                            ?>
-                            <a href="<?php echo esc_url($url_title); ?>">
-                                <span><?php echo esc_html__('Titolo', 'fp-task-agenda'); ?></span>
                                 <span class="sorting-indicator"></span>
                             </a>
                         </th>
@@ -144,6 +134,16 @@ if (!defined('ABSPATH')) {
                             ?>
                             <a href="<?php echo esc_url($url_client); ?>">
                                 <span><?php echo esc_html__('Cliente', 'fp-task-agenda'); ?></span>
+                                <span class="sorting-indicator"></span>
+                            </a>
+                        </th>
+                        <th class="sortable <?php echo ($orderby === 'title') ? 'sorted ' . strtolower($order) : ''; ?>">
+                            <?php
+                            $order_title = ($orderby === 'title' && $order === 'ASC') ? 'DESC' : 'ASC';
+                            $url_title = add_query_arg(array('orderby' => 'title', 'order' => $order_title), remove_query_arg(array('paged')));
+                            ?>
+                            <a href="<?php echo esc_url($url_title); ?>">
+                                <span><?php echo esc_html__('Titolo', 'fp-task-agenda'); ?></span>
                                 <span class="sorting-indicator"></span>
                             </a>
                         </th>
@@ -203,18 +203,18 @@ if (!defined('ABSPATH')) {
                                 </span>
                             </td>
                             <td>
-                                <strong class="fp-task-title"><?php echo esc_html($task->title); ?></strong>
-                                <?php if (!empty($task->description)): ?>
-                                    <br><small class="fp-task-description"><?php echo esc_html(wp_trim_words($task->description, 15)); ?></small>
-                                <?php endif; ?>
-                            </td>
-                            <td>
                                 <?php if (!empty($task->client_id)): ?>
                                     <span class="fp-client-name">
                                         <?php echo esc_html(\FP\TaskAgenda\Client::get_name_for_task($task->client_id)); ?>
                                     </span>
                                 <?php else: ?>
                                     <span class="fp-no-client">—</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <strong class="fp-task-title"><?php echo esc_html($task->title); ?></strong>
+                                <?php if (!empty($task->description)): ?>
+                                    <br><small class="fp-task-description"><?php echo esc_html(wp_trim_words($task->description, 15)); ?></small>
                                 <?php endif; ?>
                             </td>
                             <td>
