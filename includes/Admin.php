@@ -287,37 +287,64 @@ class Admin {
         }
         
         $data = array();
-        if (isset($_POST['title'])) {
+        
+        // Title è sempre richiesto
+        if (isset($_POST['title']) && !empty(trim($_POST['title']))) {
             $data['title'] = sanitize_text_field($_POST['title']);
         }
+        
+        // Description può essere vuota
         if (isset($_POST['description'])) {
             $data['description'] = sanitize_textarea_field($_POST['description']);
         }
-        if (isset($_POST['priority'])) {
+        
+        // Priority
+        if (isset($_POST['priority']) && in_array($_POST['priority'], array('low', 'normal', 'high', 'urgent'))) {
             $data['priority'] = sanitize_text_field($_POST['priority']);
         }
-        if (isset($_POST['status'])) {
+        
+        // Status (solo in edit mode)
+        if (isset($_POST['status']) && in_array($_POST['status'], array('pending', 'in_progress', 'completed'))) {
             $data['status'] = sanitize_text_field($_POST['status']);
         }
+        
+        // Due date
         if (isset($_POST['due_date'])) {
-            $data['due_date'] = !empty($_POST['due_date']) ? sanitize_text_field($_POST['due_date']) : null;
+            $data['due_date'] = !empty(trim($_POST['due_date'])) ? sanitize_text_field($_POST['due_date']) : null;
         }
+        
+        // Client ID
         if (isset($_POST['client_id'])) {
-            $data['client_id'] = !empty($_POST['client_id']) ? absint($_POST['client_id']) : null;
+            $client_id = trim($_POST['client_id']);
+            $data['client_id'] = !empty($client_id) ? absint($client_id) : null;
         }
+        
+        // Recurrence type
         if (isset($_POST['recurrence_type'])) {
-            $data['recurrence_type'] = sanitize_text_field($_POST['recurrence_type']);
-            // Calcola next_recurrence_date se c'è una ricorrenza
-            if (!empty($data['recurrence_type']) && isset($_POST['due_date']) && !empty($_POST['due_date'])) {
-                $due_date = sanitize_text_field($_POST['due_date']);
-                $data['next_recurrence_date'] = \FP\TaskAgenda\Plugin::calculate_next_recurrence_date_static(
-                    $due_date,
-                    $data['recurrence_type'],
-                    1
-                );
+            $recurrence_type = trim($_POST['recurrence_type']);
+            if (!empty($recurrence_type) && in_array($recurrence_type, array('daily', 'weekly', 'monthly'))) {
+                $data['recurrence_type'] = $recurrence_type;
+                // Calcola next_recurrence_date se c'è una ricorrenza
+                if (isset($_POST['due_date']) && !empty(trim($_POST['due_date']))) {
+                    $due_date = sanitize_text_field($_POST['due_date']);
+                    $data['next_recurrence_date'] = \FP\TaskAgenda\Plugin::calculate_next_recurrence_date_static(
+                        $due_date,
+                        $recurrence_type,
+                        1
+                    );
+                } else {
+                    $data['next_recurrence_date'] = null;
+                }
             } else {
+                // Se recurrence_type è vuoto o non valido, rimuovi la ricorrenza
+                $data['recurrence_type'] = null;
                 $data['next_recurrence_date'] = null;
             }
+        }
+        
+        // Verifica che ci sia almeno un campo da aggiornare
+        if (empty($data)) {
+            wp_send_json_error(array('message' => __('Nessun dato da aggiornare', 'fp-task-agenda')));
         }
         
         $result = Database::update_task($id, $data);
