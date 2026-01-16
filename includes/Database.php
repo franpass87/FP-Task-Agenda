@@ -212,27 +212,22 @@ class Database {
             $insert_data['next_recurrence_date'] = null;
         }
         
-        // Prepara i formati per i campi (solo quelli presenti)
-        $formats = array();
-        foreach ($insert_data as $key => $value) {
-            if ($value === null) {
-                // Per i valori NULL, WordPress richiede che siano stringhe vuote o null
-                // ma è meglio rimuoverli dall'array e lasciare il default del DB
-                continue;
-            }
-            // Determina il formato in base al tipo di campo
-            if (in_array($key, array('client_id', 'recurrence_interval', 'recurrence_parent_id', 'user_id'))) {
-                $formats[] = '%d';
-            } else {
-                $formats[] = '%s';
-            }
-        }
-        
         // Rimuovi i campi NULL dall'array (il DB userà i default)
         $insert_data_clean = array();
         foreach ($insert_data as $key => $value) {
             if ($value !== null) {
                 $insert_data_clean[$key] = $value;
+            }
+        }
+        
+        // Prepara i formati per i campi (solo quelli presenti, dopo la rimozione dei NULL)
+        $formats = array();
+        foreach ($insert_data_clean as $key => $value) {
+            // Determina il formato in base al tipo di campo
+            if (in_array($key, array('client_id', 'recurrence_interval', 'recurrence_parent_id', 'user_id'))) {
+                $formats[] = '%d';
+            } else {
+                $formats[] = '%s';
             }
         }
         
