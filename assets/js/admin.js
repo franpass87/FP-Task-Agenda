@@ -399,13 +399,6 @@
                         }
                         // Forza il reflow per aggiornare gli stili
                         $row[0].offsetHeight;
-                        // Aggiorna visivamente la riga
-                        var $row = select.closest('.fp-task-row');
-                        if (newStatus === 'completed') {
-                            $row.addClass('fp-task-completed');
-                        } else {
-                            $row.removeClass('fp-task-completed');
-                        }
                         
                         // Aggiorna checkbox
                         $row.find('.fp-task-checkbox').prop('checked', newStatus === 'completed');
