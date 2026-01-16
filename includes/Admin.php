@@ -224,7 +224,8 @@ class Admin {
             'all' => Database::count_tasks(array('status' => 'all')),
             'pending' => Database::count_tasks(array('status' => 'pending')),
             'in_progress' => Database::count_tasks(array('status' => 'in_progress')),
-            'completed' => Database::count_tasks(array('status' => 'completed'))
+            'completed' => Database::count_tasks(array('status' => 'completed')),
+            'due_soon' => Database::count_tasks_due_soon()
         );
         
         // Passa variabili per ordinamento al template

@@ -501,6 +501,31 @@ class Database {
     }
     
     /**
+     * Conta i task in scadenza (entro 3 giorni, non completati)
+     */
+    public static function count_tasks_due_soon() {
+        global $wpdb;
+        
+        $table_name = self::get_table_name();
+        $today = current_time('Y-m-d');
+        $three_days_later = date('Y-m-d', strtotime('+3 days', strtotime($today)));
+        
+        $count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $table_name 
+            WHERE user_id = %d 
+            AND status != 'completed' 
+            AND due_date IS NOT NULL 
+            AND DATE(due_date) >= %s 
+            AND DATE(due_date) <= %s",
+            get_current_user_id(),
+            $today,
+            $three_days_later
+        ));
+        
+        return absint($count);
+    }
+    
+    /**
      * Conta i task con filtri
      */
     public static function count_tasks($args = array()) {

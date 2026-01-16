@@ -85,22 +85,28 @@ if (!defined('ABSPATH')) {
     
     <!-- Statistiche -->
     <div class="fp-task-stats">
-        <div class="fp-stat-card">
+        <a href="<?php echo esc_url(add_query_arg(array('status' => 'all'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-card-link <?php echo ($current_status === 'all' && $current_priority === 'all') ? 'fp-stat-active' : ''; ?>">
             <span class="fp-stat-label"><?php echo esc_html__('Totali', 'fp-task-agenda'); ?></span>
             <span class="fp-stat-value"><?php echo esc_html($stats['all']); ?></span>
-        </div>
-        <div class="fp-stat-card fp-stat-pending">
+        </a>
+        <a href="<?php echo esc_url(add_query_arg(array('status' => 'pending'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-pending fp-stat-card-link <?php echo $current_status === 'pending' ? 'fp-stat-active' : ''; ?>">
             <span class="fp-stat-label"><?php echo esc_html__('Da fare', 'fp-task-agenda'); ?></span>
             <span class="fp-stat-value"><?php echo esc_html($stats['pending']); ?></span>
-        </div>
-        <div class="fp-stat-card fp-stat-progress">
+        </a>
+        <a href="<?php echo esc_url(add_query_arg(array('status' => 'in_progress'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-progress fp-stat-card-link <?php echo $current_status === 'in_progress' ? 'fp-stat-active' : ''; ?>">
             <span class="fp-stat-label"><?php echo esc_html__('In corso', 'fp-task-agenda'); ?></span>
             <span class="fp-stat-value"><?php echo esc_html($stats['in_progress']); ?></span>
-        </div>
-        <div class="fp-stat-card fp-stat-completed">
+        </a>
+        <?php if ($stats['due_soon'] > 0): ?>
+        <a href="<?php echo esc_url(add_query_arg(array('status' => 'all', 'orderby' => 'due_date', 'order' => 'ASC'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-due-soon fp-stat-card-link">
+            <span class="fp-stat-label"><?php echo esc_html__('In scadenza', 'fp-task-agenda'); ?></span>
+            <span class="fp-stat-value"><?php echo esc_html($stats['due_soon']); ?></span>
+        </a>
+        <?php endif; ?>
+        <a href="<?php echo esc_url(add_query_arg(array('status' => 'completed'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-completed fp-stat-card-link <?php echo $current_status === 'completed' ? 'fp-stat-active' : ''; ?>">
             <span class="fp-stat-label"><?php echo esc_html__('Completati', 'fp-task-agenda'); ?></span>
             <span class="fp-stat-value"><?php echo esc_html($stats['completed']); ?></span>
-        </div>
+        </a>
     </div>
     
     <!-- Filtri -->
