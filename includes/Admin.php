@@ -25,6 +25,7 @@ class Admin {
     private function __construct() {
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
+        add_action('admin_head', array($this, 'add_custom_favicon'));
         
         // AJAX handlers
         add_action('wp_ajax_fp_task_agenda_add_task', array($this, 'ajax_add_task'));
@@ -94,6 +95,34 @@ class Admin {
             'fp-task-agenda-templates',
             array($this, 'render_templates_page')
         );
+    }
+    
+    /**
+     * Aggiungi favicon personalizzato nelle pagine del plugin
+     */
+    public function add_custom_favicon() {
+        global $hook_suffix;
+        
+        // Verifica se siamo in una delle pagine del plugin
+        $is_main_page = ($hook_suffix === 'toplevel_page_fp-task-agenda');
+        $is_clients_page = (strpos($hook_suffix, 'fp-task-agenda-clients') !== false);
+        $is_templates_page = (strpos($hook_suffix, 'fp-task-agenda-templates') !== false);
+        
+        if (!$is_main_page && !$is_clients_page && !$is_templates_page) {
+            return;
+        }
+        
+        // Icona SVG personalizzata per il plugin (checklist/task list)
+        $svg_icon = 'data:image/svg+xml;base64,' . base64_encode('
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+                <rect width="32" height="32" rx="4" fill="#40c057"/>
+                <path d="M8 10 L14 16 L24 6" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="8" y1="20" x2="24" y2="20" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+                <line x1="8" y1="26" x2="20" y2="26" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+        ');
+        
+        echo '<link rel="icon" type="image/svg+xml" href="' . esc_url($svg_icon) . '" />' . "\n";
     }
     
     /**
