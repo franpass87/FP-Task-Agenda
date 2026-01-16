@@ -362,7 +362,8 @@ class Database {
         // Per priorità, usa un CASE per ordinare logicamente invece che alfabeticamente
         if ($orderby_field === 'priority') {
             // Ordine logico: urgent=4, high=3, normal=2, low=1
-            $orderby = "CASE priority 
+            // Metti sempre i task "in_progress" in cima
+            $orderby = "CASE WHEN status = 'in_progress' THEN 0 ELSE 1 END ASC, CASE priority 
                 WHEN 'urgent' THEN 4 
                 WHEN 'high' THEN 3 
                 WHEN 'normal' THEN 2 
@@ -370,22 +371,33 @@ class Database {
                 ELSE 0 
             END " . $order_direction;
         } elseif ($orderby_field === 'status') {
-            // Per status, ordine logico: pending=1, in_progress=2, completed=3
+            // Per status, ordine logico: in_progress=0 (prima), pending=1, completed=3
             $orderby = "CASE status 
+                WHEN 'in_progress' THEN 0
                 WHEN 'pending' THEN 1 
-                WHEN 'in_progress' THEN 2 
                 WHEN 'completed' THEN 3 
-                ELSE 0 
-            END " . $order_direction;
+                ELSE 2 
+            END ASC";
         } elseif ($orderby_field === 'due_date') {
-            // Per due_date, metti i NULL alla fine in ASC, all'inizio in DESC
+            // Per due_date, metti i task "in_progress" in cima, poi ordina per data
+            // I NULL alla fine in ASC, all'inizio in DESC
             if ($order_direction === 'ASC') {
-                $orderby = "CASE WHEN due_date IS NULL THEN 1 ELSE 0 END ASC, due_date ASC";
+                $orderby = "CASE WHEN status = 'in_progress' THEN 0 ELSE 1 END ASC, CASE WHEN due_date IS NULL THEN 1 ELSE 0 END ASC, due_date ASC";
             } else {
-                $orderby = "CASE WHEN due_date IS NULL THEN 0 ELSE 1 END DESC, due_date DESC";
+                $orderby = "CASE WHEN status = 'in_progress' THEN 0 ELSE 1 END ASC, CASE WHEN due_date IS NULL THEN 0 ELSE 1 END DESC, due_date DESC";
             }
+        } elseif ($orderby_field === 'created_at') {
+            // Per created_at, metti i task "in_progress" in cima
+            $orderby = "CASE WHEN status = 'in_progress' THEN 0 ELSE 1 END ASC, created_at " . $order_direction;
+        } elseif ($orderby_field === 'title') {
+            // Per title, metti i task "in_progress" in cima
+            $orderby = "CASE WHEN status = 'in_progress' THEN 0 ELSE 1 END ASC, title " . $order_direction;
+        } elseif ($orderby_field === 'client_id') {
+            // Per client_id, metti i task "in_progress" in cima
+            $orderby = "CASE WHEN status = 'in_progress' THEN 0 ELSE 1 END ASC, client_id " . $order_direction;
         } else {
-            $orderby = $orderby_field . ' ' . $order_direction;
+            // Per altri campi, metti sempre i task "in_progress" in cima
+            $orderby = "CASE WHEN status = 'in_progress' THEN 0 ELSE 1 END ASC, " . $orderby_field . ' ' . $order_direction;
         }
         
         $offset = ($args['page'] - 1) * $args['per_page'];
