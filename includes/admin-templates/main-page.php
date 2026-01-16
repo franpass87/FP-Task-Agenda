@@ -17,21 +17,27 @@ if (!defined('ABSPATH')) {
 ?>
 
 <div class="wrap fp-task-agenda-wrap">
-    <h1 class="wp-heading-inline">
-        <?php echo esc_html__('Task Agenda', 'fp-task-agenda'); ?>
-    </h1>
-    
-    <button type="button" class="page-title-action" id="fp-add-task-btn">
-        <?php echo esc_html__('Aggiungi Task', 'fp-task-agenda'); ?>
-    </button>
-    
-    <?php 
-    $templates = \FP\TaskAgenda\Template::get_all();
-    $template_btn_class = empty($templates) ? 'page-title-action fp-btn-disabled' : 'page-title-action';
-    ?>
-    <button type="button" class="<?php echo esc_attr($template_btn_class); ?>" id="fp-create-from-template-btn" <?php echo empty($templates) ? 'title="' . esc_attr__('Crea prima un template nella pagina Template', 'fp-task-agenda') . '"' : ''; ?>>
-        <?php echo esc_html__('Crea da Template', 'fp-task-agenda'); ?>
-    </button>
+    <!-- Header con titolo e azioni principali -->
+    <div class="fp-page-header">
+        <div class="fp-header-left">
+            <h1 class="wp-heading-inline" style="margin: 0;">
+                <?php echo esc_html__('Task Agenda', 'fp-task-agenda'); ?>
+            </h1>
+        </div>
+        <div class="fp-header-actions">
+            <button type="button" class="page-title-action" id="fp-add-task-btn">
+                <?php echo esc_html__('Aggiungi Task', 'fp-task-agenda'); ?>
+            </button>
+            
+            <?php 
+            $templates = \FP\TaskAgenda\Template::get_all();
+            $template_btn_class = empty($templates) ? 'page-title-action fp-btn-disabled' : 'page-title-action';
+            ?>
+            <button type="button" class="<?php echo esc_attr($template_btn_class); ?>" id="fp-create-from-template-btn" <?php echo empty($templates) ? 'title="' . esc_attr__('Crea prima un template nella pagina Template', 'fp-task-agenda') . '"' : ''; ?>>
+                <?php echo esc_html__('Crea da Template', 'fp-task-agenda'); ?>
+            </button>
+        </div>
+    </div>
     
     <hr class="wp-header-end">
     
@@ -83,6 +89,37 @@ if (!defined('ABSPATH')) {
     <div class="fp-modal-backdrop" id="fp-template-select-modal-backdrop" style="display: none;"></div>
     <?php endif; ?>
     
+    <!-- Toolbar con Quick Filters e View Toggle -->
+    <div class="fp-toolbar">
+        <div class="fp-toolbar-left">
+            <!-- Quick Filter Buttons -->
+            <?php if ($current_status === 'all' && $current_priority === 'all'): ?>
+            <div class="fp-quick-filters">
+                <a href="<?php echo esc_url(add_query_arg(array('priority' => 'urgent'), remove_query_arg(array('status', 'paged')))); ?>" class="page-title-action fp-quick-filter-btn fp-quick-urgent">
+                    <span class="dashicons dashicons-warning"></span> <?php echo esc_html__('Urgenti', 'fp-task-agenda'); ?>
+                </a>
+                <a href="<?php echo esc_url(add_query_arg(array('priority' => 'high'), remove_query_arg(array('status', 'paged')))); ?>" class="page-title-action fp-quick-filter-btn fp-quick-high">
+                    <span class="dashicons dashicons-arrow-up-alt"></span> <?php echo esc_html__('Alta Priorità', 'fp-task-agenda'); ?>
+                </a>
+                <a href="<?php echo esc_url(add_query_arg(array('status' => 'in_progress'), remove_query_arg('paged'))); ?>" class="page-title-action fp-quick-filter-btn fp-quick-progress">
+                    <span class="dashicons dashicons-update"></span> <?php echo esc_html__('In Corso', 'fp-task-agenda'); ?>
+                </a>
+            </div>
+            <?php endif; ?>
+        </div>
+        <div class="fp-toolbar-right">
+            <!-- Toggle Vista -->
+            <div class="fp-view-toggle">
+                <button type="button" class="page-title-action fp-view-btn fp-view-table active" data-view="table">
+                    <?php echo esc_html__('Tabella', 'fp-task-agenda'); ?>
+                </button>
+                <button type="button" class="page-title-action fp-view-btn fp-view-kanban" data-view="kanban">
+                    <?php echo esc_html__('Kanban', 'fp-task-agenda'); ?>
+                </button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Statistiche -->
     <div class="fp-task-stats">
         <a href="<?php echo esc_url(add_query_arg(array('status' => 'all'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-card-link <?php echo ($current_status === 'all' && $current_priority === 'all') ? 'fp-stat-active' : ''; ?>">
@@ -108,21 +145,6 @@ if (!defined('ABSPATH')) {
             <span class="fp-stat-value"><?php echo esc_html($stats['completed']); ?></span>
         </a>
     </div>
-    
-    <!-- Quick Filter Buttons -->
-    <?php if ($current_status === 'all' && $current_priority === 'all'): ?>
-    <div class="fp-quick-filters">
-        <a href="<?php echo esc_url(add_query_arg(array('priority' => 'urgent'), remove_query_arg(array('status', 'paged')))); ?>" class="page-title-action fp-quick-filter-btn fp-quick-urgent">
-            <span class="dashicons dashicons-warning"></span> <?php echo esc_html__('Urgenti', 'fp-task-agenda'); ?>
-        </a>
-        <a href="<?php echo esc_url(add_query_arg(array('priority' => 'high'), remove_query_arg(array('status', 'paged')))); ?>" class="page-title-action fp-quick-filter-btn fp-quick-high">
-            <span class="dashicons dashicons-arrow-up-alt"></span> <?php echo esc_html__('Alta Priorità', 'fp-task-agenda'); ?>
-        </a>
-        <a href="<?php echo esc_url(add_query_arg(array('status' => 'in_progress'), remove_query_arg('paged'))); ?>" class="page-title-action fp-quick-filter-btn fp-quick-progress">
-            <span class="dashicons dashicons-update"></span> <?php echo esc_html__('In Corso', 'fp-task-agenda'); ?>
-        </a>
-    </div>
-    <?php endif; ?>
     
     <!-- Filtri -->
     <div class="fp-task-filters">
@@ -192,16 +214,6 @@ if (!defined('ABSPATH')) {
                 <?php endif; ?>
             </div>
         </form>
-    </div>
-    
-    <!-- Toggle Vista -->
-    <div class="fp-view-toggle" style="margin: 15px 0; text-align: right;">
-        <button type="button" class="page-title-action fp-view-btn fp-view-table active" data-view="table">
-            <?php echo esc_html__('Tabella', 'fp-task-agenda'); ?>
-        </button>
-        <button type="button" class="page-title-action fp-view-btn fp-view-kanban" data-view="kanban">
-            <?php echo esc_html__('Kanban', 'fp-task-agenda'); ?>
-        </button>
     </div>
     
     <!-- Lista Task - Vista Tabella -->
