@@ -102,7 +102,13 @@ class Admin {
      */
     public function add_custom_favicon() {
         $screen = get_current_screen();
-        if ($screen === null || ! str_contains((string) $screen->id, 'fp-task-agenda')) {
+        if ($screen === null) {
+            return;
+        }
+        
+        // Verifica se siamo in una pagina del plugin (controllo più flessibile)
+        $screen_id = (string) $screen->id;
+        if (strpos($screen_id, 'fp-task-agenda') === false && $screen_id !== 'toplevel_page_fp-task-agenda') {
             return;
         }
         
