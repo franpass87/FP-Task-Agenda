@@ -241,8 +241,6 @@
 
 /* Task in progress - colore verde con bordo solido */
 .fp-task-row.fp-task-in-progress {
-    outline: 3px solid #40c057 !important;
-    outline-offset: -3px !important;
     border-left: 5px solid #40c057 !important;
     border-top: 3px solid #40c057 !important;
     border-bottom: 3px solid #40c057 !important;
@@ -253,58 +251,55 @@
     border-radius: 3px !important;
 }
 
-/* Rimuovi bordo superiore e outline se la riga precedente è anche in progress */
+/* Rimuovi bordo superiore se la riga precedente è anche in progress */
 .fp-task-row.fp-task-in-progress + .fp-task-row.fp-task-in-progress {
     border-top: none !important;
-    outline-top: none !important;
     margin-top: 0 !important;
     border-radius: 0 3px 3px 3px !important;
 }
 
-/* Rimuovi bordo inferiore se la riga successiva è anche in progress - usando JavaScript per browser non supportanti :has() */
-.fp-task-row.fp-task-in-progress:not(:has(+ .fp-task-row.fp-task-in-progress)) {
-    border-bottom: 3px solid #40c057 !important;
-}
-
-/* Per browser che supportano :has() - rimuovi bordo inferiore quando la successiva è in progress */
+/* Rimuovi bordo inferiore se la riga successiva è anche in progress */
 .fp-task-row.fp-task-in-progress:has(+ .fp-task-row.fp-task-in-progress) {
     border-bottom: none !important;
     border-radius: 3px 3px 0 3px !important;
 }
 
 .fp-task-row.fp-task-in-progress:hover {
-    outline-color: #37b24d !important;
-    border-left-color: #37b24d !important;
+    border-color: #37b24d !important;
     background: linear-gradient(90deg, rgba(81, 207, 102, 0.18) 0%, rgba(81, 207, 102, 0.12) 50%, rgba(81, 207, 102, 0.05) 100%) !important;
     box-shadow: 0 0 0 1px rgba(81, 207, 102, 0.4), inset 0 0 0 1px rgba(81, 207, 102, 0.2), 0 2px 8px rgba(81, 207, 102, 0.2) !important;
 }
 
 /* Task in progress con priorità - combinazione verde + colore priorità */
 .fp-task-row.fp-task-in-progress.priority-low {
-    outline: 3px solid #40c057 !important;
-    outline-offset: -3px !important;
     border-left: 5px solid #40c057 !important;
+    border-top: 3px solid #40c057 !important;
+    border-bottom: 3px solid #40c057 !important;
+    border-right: 3px solid #40c057 !important;
     background: linear-gradient(90deg, rgba(81, 207, 102, 0.18) 0%, rgba(116, 192, 252, 0.10) 30%, rgba(116, 192, 252, 0.05) 70%, rgba(81, 207, 102, 0.03) 100%) !important;
 }
 
 .fp-task-row.fp-task-in-progress.priority-normal {
-    outline: 3px solid #40c057 !important;
-    outline-offset: -3px !important;
     border-left: 5px solid #40c057 !important;
+    border-top: 3px solid #40c057 !important;
+    border-bottom: 3px solid #40c057 !important;
+    border-right: 3px solid #40c057 !important;
     background: linear-gradient(90deg, rgba(81, 207, 102, 0.15) 0%, rgba(173, 181, 189, 0.08) 30%, rgba(173, 181, 189, 0.03) 70%, rgba(81, 207, 102, 0.03) 100%) !important;
 }
 
 .fp-task-row.fp-task-in-progress.priority-high {
-    outline: 3px solid #40c057 !important;
-    outline-offset: -3px !important;
     border-left: 5px solid #40c057 !important;
+    border-top: 3px solid #40c057 !important;
+    border-bottom: 3px solid #40c057 !important;
+    border-right: 3px solid #40c057 !important;
     background: linear-gradient(90deg, rgba(81, 207, 102, 0.20) 0%, rgba(255, 212, 59, 0.12) 30%, rgba(255, 212, 59, 0.06) 70%, rgba(81, 207, 102, 0.03) 100%) !important;
 }
 
 .fp-task-row.fp-task-in-progress.priority-urgent {
-    outline: 3px solid #40c057 !important;
-    outline-offset: -3px !important;
     border-left: 5px solid #40c057 !important;
+    border-top: 3px solid #40c057 !important;
+    border-bottom: 3px solid #40c057 !important;
+    border-right: 3px solid #40c057 !important;
     background: linear-gradient(90deg, rgba(81, 207, 102, 0.22) 0%, rgba(255, 107, 107, 0.14) 30%, rgba(255, 107, 107, 0.08) 70%, rgba(81, 207, 102, 0.03) 100%) !important;
 }
 
