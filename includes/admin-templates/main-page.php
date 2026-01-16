@@ -254,8 +254,9 @@ if (!defined('ABSPATH')) {
                         $due_date_formatted = \FP\TaskAgenda\Task::format_due_date($task->due_date);
                         $is_due_soon = \FP\TaskAgenda\Task::is_due_soon($task->due_date);
                         $is_completed = $task->status === 'completed';
+                        $is_in_progress = $task->status === 'in_progress';
                         ?>
-                        <tr class="fp-task-row <?php echo esc_attr($priority_class); ?> <?php echo $is_completed ? 'fp-task-completed' : ''; ?> <?php echo $is_due_soon && !$is_completed ? 'fp-task-due-soon' : ''; ?>" data-task-id="<?php echo esc_attr($task->id); ?>">
+                        <tr class="fp-task-row <?php echo esc_attr($priority_class); ?> <?php echo $is_completed ? 'fp-task-completed' : ''; ?> <?php echo $is_in_progress ? 'fp-task-in-progress' : ''; ?> <?php echo $is_due_soon && !$is_completed ? 'fp-task-due-soon' : ''; ?>" data-task-id="<?php echo esc_attr($task->id); ?>">
                             <th scope="row" class="check-column">
                                 <input type="checkbox" class="fp-task-checkbox" name="task[]" value="<?php echo esc_attr($task->id); ?>" <?php checked($is_completed); ?> data-task-id="<?php echo esc_attr($task->id); ?>">
                             </th>

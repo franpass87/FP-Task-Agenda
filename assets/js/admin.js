@@ -377,6 +377,7 @@
             var select = $(this);
             var taskId = select.data('task-id');
             var newStatus = select.val();
+            var $row = select.closest('.fp-task-row');
             
             $.ajax({
                 url: fpTaskAgenda.ajaxUrl,
@@ -389,6 +390,15 @@
                 },
                 success: function(response) {
                     if (response.success) {
+                        // Aggiorna le classi della riga in base al nuovo status
+                        $row.removeClass('fp-task-completed fp-task-in-progress');
+                        if (newStatus === 'completed') {
+                            $row.addClass('fp-task-completed');
+                        } else if (newStatus === 'in_progress') {
+                            $row.addClass('fp-task-in-progress');
+                        }
+                        // Forza il reflow per aggiornare gli stili
+                        $row[0].offsetHeight;
                         // Aggiorna visivamente la riga
                         var $row = select.closest('.fp-task-row');
                         if (newStatus === 'completed') {
