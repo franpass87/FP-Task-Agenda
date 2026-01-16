@@ -112,13 +112,19 @@ class Admin {
             return;
         }
         
-        // Icona SVG personalizzata per il plugin (checklist/task list)
-        // Rimuovi spazi e newline per un encoding corretto
-        $svg_content = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="4" fill="#40c057"/><path d="M8 10 L14 16 L24 6" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><line x1="8" y1="20" x2="24" y2="20" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="26" x2="20" y2="26" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/></svg>';
-        $svg_icon = 'data:image/svg+xml;base64,' . base64_encode($svg_content);
+        // Icona SVG da file (Font Awesome fa-solid fa-list-check)
+        $favicon_path = plugin_dir_path(__FILE__) . '../assets/admin/favicon.svg';
+        $favicon_url = plugin_dir_url(__FILE__) . '../assets/admin/favicon.svg';
         
-        // Per data URI, usiamo esc_attr invece di esc_url
-        echo '<link rel="icon" type="image/svg+xml" href="' . esc_attr($svg_icon) . '" />' . "\n";
+        // Verifica che il file esista
+        if (!file_exists($favicon_path)) {
+            return;
+        }
+        
+        // Aggiungi favicon con versioning per cache busting
+        $version = filemtime($favicon_path);
+        echo '<link rel="icon" type="image/svg+xml" href="' . esc_url($favicon_url . '?v=' . $version) . '" />' . "\n";
+        echo '<link rel="alternate icon" href="' . esc_url($favicon_url . '?v=' . $version) . '" />' . "\n";
     }
     
     /**
