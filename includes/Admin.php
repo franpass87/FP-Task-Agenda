@@ -258,27 +258,50 @@ class Admin {
     public function ajax_add_task() {
         check_ajax_referer('fp_task_agenda_nonce', 'nonce');
         
-        $title = isset($_POST['title']) ? sanitize_text_field($_POST['title']) : '';
-        $description = isset($_POST['description']) ? sanitize_textarea_field($_POST['description']) : '';
-        $priority = isset($_POST['priority']) ? sanitize_text_field($_POST['priority']) : 'normal';
-        $due_date = isset($_POST['due_date']) && !empty($_POST['due_date']) ? sanitize_text_field($_POST['due_date']) : null;
-        $client_id = isset($_POST['client_id']) && !empty($_POST['client_id']) ? absint($_POST['client_id']) : null;
-        
+        // Title è sempre richiesto
+        $title = isset($_POST['title']) ? trim(sanitize_text_field($_POST['title'])) : '';
         if (empty($title)) {
             wp_send_json_error(array('message' => __('Il titolo è obbligatorio', 'fp-task-agenda')));
         }
         
-        $recurrence_type = isset($_POST['recurrence_type']) && !empty($_POST['recurrence_type']) ? sanitize_text_field($_POST['recurrence_type']) : null;
+        // Description può essere vuota
+        $description = isset($_POST['description']) ? sanitize_textarea_field($_POST['description']) : '';
+        
+        // Priority
+        $priority = isset($_POST['priority']) && in_array($_POST['priority'], array('low', 'normal', 'high', 'urgent')) 
+            ? sanitize_text_field($_POST['priority']) 
+            : 'normal';
+        
+        // Due date
+        $due_date = isset($_POST['due_date']) && !empty(trim($_POST['due_date'])) 
+            ? sanitize_text_field($_POST['due_date']) 
+            : null;
+        
+        // Client ID
+        $client_id = null;
+        if (isset($_POST['client_id'])) {
+            $client_id_raw = trim($_POST['client_id']);
+            $client_id = !empty($client_id_raw) ? absint($client_id_raw) : null;
+        }
+        
+        // Recurrence type
+        $recurrence_type = null;
         $recurrence_interval = 1;
         $next_recurrence_date = null;
         
-        // Calcola next_recurrence_date se c'è una ricorrenza
-        if (!empty($recurrence_type) && !empty($due_date)) {
-            $next_recurrence_date = \FP\TaskAgenda\Plugin::calculate_next_recurrence_date_static(
-                $due_date,
-                $recurrence_type,
-                $recurrence_interval
-            );
+        if (isset($_POST['recurrence_type'])) {
+            $recurrence_type_raw = trim($_POST['recurrence_type']);
+            if (!empty($recurrence_type_raw) && in_array($recurrence_type_raw, array('daily', 'weekly', 'monthly'))) {
+                $recurrence_type = $recurrence_type_raw;
+                // Calcola next_recurrence_date se c'è una ricorrenza e una due_date
+                if (!empty($due_date)) {
+                    $next_recurrence_date = \FP\TaskAgenda\Plugin::calculate_next_recurrence_date_static(
+                        $due_date,
+                        $recurrence_type,
+                        $recurrence_interval
+                    );
+                }
+            }
         }
         
         $result = Database::insert_task(array(
