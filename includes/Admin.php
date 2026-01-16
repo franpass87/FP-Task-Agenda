@@ -112,23 +112,21 @@ class Admin {
             return;
         }
         
-        // Icona SVG da file (Font Awesome fa-solid fa-list-check)
-        if (!defined('FP_TASK_AGENDA_PLUGIN_DIR') || !defined('FP_TASK_AGENDA_PLUGIN_URL')) {
-            return;
-        }
+        // SVG favicon inline - Checklist/Task icon con gradient arancione-ambra
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
+            . '<defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">'
+            . '<stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#ea580c"/>'
+            . '</linearGradient></defs>'
+            . '<rect width="32" height="32" rx="6" fill="url(#g)"/>'
+            . '<path d="M8 10l3 3 5-5" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+            . '<rect x="18" y="9" width="8" height="2" rx="1" fill="#fff"/>'
+            . '<path d="M8 18l3 3 5-5" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+            . '<rect x="18" y="17" width="8" height="2" rx="1" fill="#fff"/>'
+            . '<rect x="8" y="25" width="16" height="2" rx="1" fill="#fff" opacity=".5"/>'
+            . '</svg>';
+        $favicon_data = 'data:image/svg+xml;base64,' . base64_encode($svg);
         
-        $favicon_path = FP_TASK_AGENDA_PLUGIN_DIR . 'assets/admin/favicon.svg';
-        $favicon_url = FP_TASK_AGENDA_PLUGIN_URL . 'assets/admin/favicon.svg';
-        
-        // Verifica che il file esista
-        if (!file_exists($favicon_path)) {
-            return;
-        }
-        
-        // Aggiungi favicon con versioning per cache busting
-        $version = filemtime($favicon_path);
-        echo '<link rel="icon" type="image/svg+xml" href="' . esc_url($favicon_url . '?v=' . $version) . '" />' . "\n";
-        echo '<link rel="alternate icon" href="' . esc_url($favicon_url . '?v=' . $version) . '" />' . "\n";
+        echo '<link rel="icon" type="image/svg+xml" href="' . esc_attr($favicon_data) . '" />' . "\n";
     }
     
     /**
