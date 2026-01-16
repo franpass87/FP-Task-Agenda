@@ -223,6 +223,9 @@ if (!defined('ABSPATH')) {
                                 <span class="sorting-indicator"></span>
                             </a>
                         </th>
+                        <th style="width: 120px;">
+                            <span><?php echo esc_html__('Ricorrenza', 'fp-task-agenda'); ?></span>
+                        </th>
                         <th style="width: 120px;" class="sortable <?php echo ($orderby === 'status') ? 'sorted ' . strtolower($order) : ''; ?>">
                             <?php
                             $order_status = ($orderby === 'status' && $order === 'ASC') ? 'DESC' : 'ASC';
@@ -297,6 +300,26 @@ if (!defined('ABSPATH')) {
                                     </span>
                                 <?php else: ?>
                                     <span class="fp-no-due-date">—</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if (!empty($task->recurrence_type)): ?>
+                                    <?php
+                                    $recurrence_labels = array(
+                                        'daily' => __('Giornaliera', 'fp-task-agenda'),
+                                        'weekly' => __('Settimanale', 'fp-task-agenda'),
+                                        'monthly' => __('Mensile', 'fp-task-agenda')
+                                    );
+                                    $recurrence_label = isset($recurrence_labels[$task->recurrence_type]) 
+                                        ? $recurrence_labels[$task->recurrence_type] 
+                                        : ucfirst($task->recurrence_type);
+                                    ?>
+                                    <span class="fp-recurrence-badge" title="<?php echo esc_attr($recurrence_label); ?>">
+                                        <span class="dashicons dashicons-update"></span>
+                                        <span class="fp-recurrence-text"><?php echo esc_html($recurrence_label); ?></span>
+                                    </span>
+                                <?php else: ?>
+                                    <span class="fp-no-recurrence">—</span>
                                 <?php endif; ?>
                             </td>
                             <td>
