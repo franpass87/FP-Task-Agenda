@@ -518,6 +518,44 @@
     box-sizing: border-box;
 }
 
+/* Badge ricorrenza */
+.fp-recurrence-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.fp-recurrence-badge .dashicons {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    line-height: 1;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.fp-recurrence-badge .fp-recurrence-text {
+    font-size: 11px;
+}
+
+.fp-no-recurrence {
+    color: #adb5bd;
+    font-style: italic;
+}
+
 /* Assicura che le colonne abbiano dimensioni fisse */
 /* Colonna Priorità (2° elemento dopo checkbox) */
 .fp-tasks-table thead tr th:nth-child(2),
