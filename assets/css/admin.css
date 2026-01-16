@@ -890,9 +890,29 @@
 }
 
 .fp-due-date.fp-due-soon {
-    color: #c92a2a;
-    background: #ffe3e3;
+    color: #f59f00;
     font-weight: 600;
+    background: #fff9db;
+    border: 1px solid #ffd43b;
+}
+
+.fp-due-date.fp-due-soon::before {
+    content: '⚠';
+    font-size: 14px;
+    margin-right: 4px;
+}
+
+.fp-due-date.fp-due-overdue {
+    color: #c92a2a;
+    font-weight: 600;
+    background: #ffe3e3;
+    border: 1px solid #ffa8a8;
+}
+
+.fp-due-date.fp-due-overdue::before {
+    content: '🔴';
+    font-size: 12px;
+    margin-right: 4px;
 }
 
 .fp-no-due-date {

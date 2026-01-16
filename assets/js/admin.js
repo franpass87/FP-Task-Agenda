@@ -742,6 +742,19 @@
                     $('.fp-template-card').css('transform', '');
                 }
             });
+        },
+        
+        toggleFilters: function() {
+            var $form = $('#fp-filter-form');
+            var $toggle = $('#fp-filter-toggle .dashicons');
+            
+            if ($form.is(':visible')) {
+                $form.slideUp(200);
+                $toggle.removeClass('dashicons-arrow-up-alt').addClass('dashicons-arrow-down-alt');
+            } else {
+                $form.slideDown(200);
+                $toggle.removeClass('dashicons-arrow-down-alt').addClass('dashicons-arrow-up-alt');
+            }
         }
     };
     
