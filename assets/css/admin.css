@@ -132,8 +132,17 @@
     align-items: center;
     gap: 6px;
     border-radius: 8px;
+    padding: 8px 20px;
     font-weight: 600;
     transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    text-decoration: none;
+}
+
+.fp-quick-filter-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+    text-decoration: none;
 }
 
 .fp-quick-filter-btn .dashicons {
@@ -148,15 +157,33 @@
     color: #c92a2a;
 }
 
+.fp-quick-urgent:hover {
+    background: linear-gradient(135deg, #ffc9c9 0%, #ffa8a8 100%);
+    border-color: #ff8787;
+    color: #c92a2a;
+}
+
 .fp-quick-high {
     background: linear-gradient(135deg, #fff9db 0%, #fff3bf 100%);
     border-color: #ffd43b;
     color: #f59f00;
 }
 
+.fp-quick-high:hover {
+    background: linear-gradient(135deg, #fff3bf 0%, #ffd43b 100%);
+    border-color: #fcc419;
+    color: #e67700;
+}
+
 .fp-quick-progress {
     background: linear-gradient(135deg, #e7f5ff 0%, #d0ebff 100%);
     border-color: #74c0fc;
+    color: #1971c2;
+}
+
+.fp-quick-progress:hover {
+    background: linear-gradient(135deg, #d0ebff 0%, #74c0fc 100%);
+    border-color: #339af0;
     color: #1971c2;
 }
 
