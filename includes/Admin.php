@@ -107,8 +107,9 @@ class Admin {
         }
         
         // Icona SVG da file (Font Awesome fa-solid fa-list-check)
-        $favicon_path = plugin_dir_path(__FILE__) . '../assets/admin/favicon.svg';
-        $favicon_url = plugin_dir_url(__FILE__) . '../assets/admin/favicon.svg';
+        $plugin_dir = dirname(dirname(__FILE__));
+        $favicon_path = $plugin_dir . '/assets/admin/favicon.svg';
+        $favicon_url = plugin_dir_url($plugin_dir . '/fp-task-agenda.php') . 'assets/admin/favicon.svg';
         
         // Verifica che il file esista
         if (!file_exists($favicon_path)) {
