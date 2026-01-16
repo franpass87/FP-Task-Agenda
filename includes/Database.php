@@ -195,22 +195,28 @@ class Database {
         // Client ID
         $insert_data['client_id'] = !empty($data['client_id']) ? absint($data['client_id']) : null;
         
-        // Recurrence type
-        $insert_data['recurrence_type'] = !empty($data['recurrence_type']) && in_array($data['recurrence_type'], array('daily', 'weekly', 'monthly')) ? $data['recurrence_type'] : null;
-        $insert_data['recurrence_interval'] = !empty($data['recurrence_interval']) ? absint($data['recurrence_interval']) : 1;
-        $insert_data['recurrence_parent_id'] = !empty($data['recurrence_parent_id']) ? absint($data['recurrence_parent_id']) : null;
+        // Recurrence - inserisci solo se c'è una ricorrenza impostata
+        $recurrence_type = !empty($data['recurrence_type']) && in_array($data['recurrence_type'], array('daily', 'weekly', 'monthly')) ? $data['recurrence_type'] : null;
         
-        // Next recurrence date - converte in datetime se necessario
-        if (!empty($data['next_recurrence_date'])) {
-            $next_date = sanitize_text_field($data['next_recurrence_date']);
-            // Se è solo una data (YYYY-MM-DD), aggiungi l'orario
-            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $next_date)) {
-                $next_date .= ' 00:00:00';
+        if (!empty($recurrence_type)) {
+            // Inserisci i campi di ricorrenza solo se c'è una ricorrenza
+            $insert_data['recurrence_type'] = $recurrence_type;
+            $insert_data['recurrence_interval'] = !empty($data['recurrence_interval']) ? absint($data['recurrence_interval']) : 1;
+            $insert_data['recurrence_parent_id'] = !empty($data['recurrence_parent_id']) ? absint($data['recurrence_parent_id']) : null;
+            
+            // Next recurrence date - converte in datetime se necessario
+            if (!empty($data['next_recurrence_date'])) {
+                $next_date = sanitize_text_field($data['next_recurrence_date']);
+                // Se è solo una data (YYYY-MM-DD), aggiungi l'orario
+                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $next_date)) {
+                    $next_date .= ' 00:00:00';
+                }
+                $insert_data['next_recurrence_date'] = $next_date;
+            } else {
+                $insert_data['next_recurrence_date'] = null;
             }
-            $insert_data['next_recurrence_date'] = $next_date;
-        } else {
-            $insert_data['next_recurrence_date'] = null;
         }
+        // Se non c'è ricorrenza, non inseriamo questi campi (evita errori se le colonne non esistono)
         
         // Rimuovi i campi NULL dall'array (il DB userà i default)
         $insert_data_clean = array();
