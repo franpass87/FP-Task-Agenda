@@ -236,30 +236,42 @@
     color: #868e96;
 }
 
+/* Task in progress - colore verde */
 .fp-task-row.fp-task-in-progress {
-    border-left: 4px solid #51cf66;
-    background: linear-gradient(90deg, rgba(81, 207, 102, 0.08) 0%, rgba(81, 207, 102, 0.03) 50%, transparent 100%);
+    border-left: 4px solid #51cf66 !important;
+    background: linear-gradient(90deg, rgba(81, 207, 102, 0.08) 0%, rgba(81, 207, 102, 0.03) 50%, transparent 100%) !important;
 }
 
 .fp-task-row.fp-task-in-progress:hover {
-    background: linear-gradient(90deg, rgba(81, 207, 102, 0.12) 0%, rgba(81, 207, 102, 0.06) 50%, rgba(248, 249, 250, 0.5) 100%);
+    background: linear-gradient(90deg, rgba(81, 207, 102, 0.12) 0%, rgba(81, 207, 102, 0.06) 50%, rgba(248, 249, 250, 0.5) 100%) !important;
 }
 
-/* Task in progress con priorità */
+/* Task in progress con priorità - combinazione verde + colore priorità */
 .fp-task-row.fp-task-in-progress.priority-low {
-    background: linear-gradient(90deg, rgba(81, 207, 102, 0.1) 0%, rgba(116, 192, 252, 0.06) 30%, rgba(116, 192, 252, 0.02) 70%, transparent 100%);
+    border-left: 4px solid #51cf66 !important;
+    background: linear-gradient(90deg, rgba(81, 207, 102, 0.1) 0%, rgba(116, 192, 252, 0.06) 30%, rgba(116, 192, 252, 0.02) 70%, transparent 100%) !important;
 }
 
 .fp-task-row.fp-task-in-progress.priority-normal {
-    background: linear-gradient(90deg, rgba(81, 207, 102, 0.08) 0%, rgba(173, 181, 189, 0.04) 30%, rgba(173, 181, 189, 0.01) 70%, transparent 100%);
+    border-left: 4px solid #51cf66 !important;
+    background: linear-gradient(90deg, rgba(81, 207, 102, 0.08) 0%, rgba(173, 181, 189, 0.04) 30%, rgba(173, 181, 189, 0.01) 70%, transparent 100%) !important;
 }
 
 .fp-task-row.fp-task-in-progress.priority-high {
-    background: linear-gradient(90deg, rgba(81, 207, 102, 0.12) 0%, rgba(255, 212, 59, 0.08) 30%, rgba(255, 212, 59, 0.03) 70%, transparent 100%);
+    border-left: 4px solid #51cf66 !important;
+    background: linear-gradient(90deg, rgba(81, 207, 102, 0.12) 0%, rgba(255, 212, 59, 0.08) 30%, rgba(255, 212, 59, 0.03) 70%, transparent 100%) !important;
 }
 
 .fp-task-row.fp-task-in-progress.priority-urgent {
-    background: linear-gradient(90deg, rgba(81, 207, 102, 0.15) 0%, rgba(255, 107, 107, 0.1) 30%, rgba(255, 107, 107, 0.04) 70%, transparent 100%);
+    border-left: 4px solid #51cf66 !important;
+    background: linear-gradient(90deg, rgba(81, 207, 102, 0.15) 0%, rgba(255, 107, 107, 0.1) 30%, rgba(255, 107, 107, 0.04) 70%, transparent 100%) !important;
+}
+
+.fp-task-row.fp-task-in-progress.priority-low:hover,
+.fp-task-row.fp-task-in-progress.priority-normal:hover,
+.fp-task-row.fp-task-in-progress.priority-high:hover,
+.fp-task-row.fp-task-in-progress.priority-urgent:hover {
+    background: linear-gradient(90deg, rgba(81, 207, 102, 0.15) 0%, rgba(81, 207, 102, 0.08) 30%, rgba(248, 249, 250, 0.5) 70%, transparent 100%) !important;
 }
 
 .fp-task-row.fp-task-due-soon {
@@ -283,22 +295,23 @@
     background: linear-gradient(90deg, rgba(255, 107, 107, 0.15) 0%, rgba(255, 107, 107, 0.1) 30%, rgba(255, 107, 107, 0.04) 70%, transparent 100%);
 }
 
-.fp-task-row.priority-low {
+/* Stili priorità base - solo se non è in progress */
+.fp-task-row.priority-low:not(.fp-task-in-progress) {
     border-left: 4px solid #74c0fc;
     background: linear-gradient(90deg, rgba(116, 192, 252, 0.06) 0%, rgba(116, 192, 252, 0.02) 50%, transparent 100%);
 }
 
-.fp-task-row.priority-normal {
+.fp-task-row.priority-normal:not(.fp-task-in-progress) {
     border-left: 4px solid #adb5bd;
     background: linear-gradient(90deg, rgba(173, 181, 189, 0.04) 0%, rgba(173, 181, 189, 0.01) 50%, transparent 100%);
 }
 
-.fp-task-row.priority-high {
+.fp-task-row.priority-high:not(.fp-task-in-progress) {
     border-left: 4px solid #ffd43b;
     background: linear-gradient(90deg, rgba(255, 212, 59, 0.08) 0%, rgba(255, 212, 59, 0.03) 50%, transparent 100%);
 }
 
-.fp-task-row.priority-urgent {
+.fp-task-row.priority-urgent:not(.fp-task-in-progress) {
     border-left: 4px solid #ff6b6b;
     background: linear-gradient(90deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 107, 107, 0.04) 50%, transparent 100%);
 }
