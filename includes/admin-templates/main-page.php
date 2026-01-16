@@ -111,14 +111,14 @@ if (!defined('ABSPATH')) {
     
     <!-- Quick Filter Buttons -->
     <?php if ($current_status === 'all' && $current_priority === 'all'): ?>
-    <div class="fp-quick-filters" style="margin: 0 0 16px;">
-        <a href="<?php echo esc_url(add_query_arg(array('priority' => 'urgent'), remove_query_arg(array('status', 'paged')))); ?>" class="button fp-quick-filter-btn fp-quick-urgent">
+    <div class="fp-quick-filters">
+        <a href="<?php echo esc_url(add_query_arg(array('priority' => 'urgent'), remove_query_arg(array('status', 'paged')))); ?>" class="page-title-action fp-quick-filter-btn fp-quick-urgent">
             <span class="dashicons dashicons-warning"></span> <?php echo esc_html__('Urgenti', 'fp-task-agenda'); ?>
         </a>
-        <a href="<?php echo esc_url(add_query_arg(array('priority' => 'high'), remove_query_arg(array('status', 'paged')))); ?>" class="button fp-quick-filter-btn fp-quick-high">
+        <a href="<?php echo esc_url(add_query_arg(array('priority' => 'high'), remove_query_arg(array('status', 'paged')))); ?>" class="page-title-action fp-quick-filter-btn fp-quick-high">
             <span class="dashicons dashicons-arrow-up-alt"></span> <?php echo esc_html__('Alta Priorità', 'fp-task-agenda'); ?>
         </a>
-        <a href="<?php echo esc_url(add_query_arg(array('status' => 'in_progress'), remove_query_arg('paged'))); ?>" class="button fp-quick-filter-btn fp-quick-progress">
+        <a href="<?php echo esc_url(add_query_arg(array('status' => 'in_progress'), remove_query_arg('paged'))); ?>" class="page-title-action fp-quick-filter-btn fp-quick-progress">
             <span class="dashicons dashicons-update"></span> <?php echo esc_html__('In Corso', 'fp-task-agenda'); ?>
         </a>
     </div>

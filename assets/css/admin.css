@@ -121,9 +121,9 @@
 
 /* Quick Filter Buttons */
 .fp-quick-filters {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 16px;
+    display: inline-flex;
+    gap: 8px;
+    margin: 0 0 16px 0;
     flex-wrap: wrap;
 }
 
@@ -131,17 +131,6 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    border-radius: 8px;
-    padding: 8px 20px;
-    font-weight: 600;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-    text-decoration: none;
-}
-
-.fp-quick-filter-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
     text-decoration: none;
 }
 
@@ -1219,7 +1208,8 @@
 #fp-create-from-template-btn,
 #fp-add-template-btn,
 #fp-add-client-btn,
-#fp-sync-clients-btn {
+#fp-sync-clients-btn,
+.fp-quick-filter-btn {
     border-radius: 8px;
     padding: 8px 20px;
     font-weight: 600;
@@ -1231,7 +1221,8 @@
 #fp-create-from-template-btn:hover:not(.fp-btn-disabled),
 #fp-add-template-btn:hover,
 #fp-add-client-btn:hover,
-#fp-sync-clients-btn:hover {
+#fp-sync-clients-btn:hover,
+.fp-quick-filter-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
 }
