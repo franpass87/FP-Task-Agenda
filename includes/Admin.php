@@ -502,6 +502,16 @@ class Admin {
         $tasks = Database::get_tasks($args);
         $total = Database::count_tasks($args);
         
+        // Aggiungi nome cliente per ogni task
+        foreach ($tasks as $task) {
+            if (!empty($task->client_id)) {
+                $client = Client::get($task->client_id);
+                $task->client_name = $client ? $client->name : '';
+            } else {
+                $task->client_name = '';
+            }
+        }
+        
         wp_send_json_success(array(
             'tasks' => $tasks,
             'total' => $total,

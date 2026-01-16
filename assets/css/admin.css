@@ -119,14 +119,72 @@
     color: #51cf66;
 }
 
+/* Quick Filter Buttons */
+.fp-quick-filters {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.fp-quick-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.fp-quick-filter-btn .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+.fp-quick-urgent {
+    background: linear-gradient(135deg, #ffe3e3 0%, #ffc9c9 100%);
+    border-color: #ffa8a8;
+    color: #c92a2a;
+}
+
+.fp-quick-high {
+    background: linear-gradient(135deg, #fff9db 0%, #fff3bf 100%);
+    border-color: #ffd43b;
+    color: #f59f00;
+}
+
+.fp-quick-progress {
+    background: linear-gradient(135deg, #e7f5ff 0%, #d0ebff 100%);
+    border-color: #74c0fc;
+    color: #1971c2;
+}
+
 /* Filtri */
 .fp-task-filters {
     background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
     border: 1px solid #e9ecef;
-    padding: 20px 24px;
+    padding: 16px 20px;
     margin: 0 0 24px;
     border-radius: 12px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.fp-filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.fp-filter-toggle {
+    cursor: pointer;
+    color: #6c757d;
+    transition: color 0.2s;
+}
+
+.fp-filter-toggle:hover {
+    color: #495057;
 }
 
 .fp-filter-form {
@@ -134,6 +192,49 @@
     gap: 12px;
     align-items: flex-end;
     flex-wrap: wrap;
+}
+
+.fp-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: relative;
+}
+
+.fp-filter-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.fp-filter-select {
+    min-width: 150px;
+}
+
+.fp-filter-search {
+    flex: 1;
+    min-width: 250px;
+}
+
+.fp-filter-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.fp-filter-badge {
+    position: absolute;
+    top: 28px;
+    left: 8px;
+    background: #4dabf7;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    pointer-events: none;
 }
 
 .fp-filter-form select,

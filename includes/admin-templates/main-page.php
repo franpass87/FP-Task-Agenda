@@ -109,42 +109,88 @@ if (!defined('ABSPATH')) {
         </a>
     </div>
     
+    <!-- Quick Filter Buttons -->
+    <?php if ($current_status === 'all' && $current_priority === 'all'): ?>
+    <div class="fp-quick-filters" style="margin: 0 0 16px;">
+        <a href="<?php echo esc_url(add_query_arg(array('priority' => 'urgent'), remove_query_arg(array('status', 'paged')))); ?>" class="button fp-quick-filter-btn fp-quick-urgent">
+            <span class="dashicons dashicons-warning"></span> <?php echo esc_html__('Urgenti', 'fp-task-agenda'); ?>
+        </a>
+        <a href="<?php echo esc_url(add_query_arg(array('priority' => 'high'), remove_query_arg(array('status', 'paged')))); ?>" class="button fp-quick-filter-btn fp-quick-high">
+            <span class="dashicons dashicons-arrow-up-alt"></span> <?php echo esc_html__('Alta Priorità', 'fp-task-agenda'); ?>
+        </a>
+        <a href="<?php echo esc_url(add_query_arg(array('status' => 'in_progress'), remove_query_arg('paged'))); ?>" class="button fp-quick-filter-btn fp-quick-progress">
+            <span class="dashicons dashicons-update"></span> <?php echo esc_html__('In Corso', 'fp-task-agenda'); ?>
+        </a>
+    </div>
+    <?php endif; ?>
+    
     <!-- Filtri -->
     <div class="fp-task-filters">
-        <form method="get" action="" class="fp-filter-form">
+        <div class="fp-filter-header">
+            <h3 style="margin: 0; font-size: 14px; font-weight: 600; color: #495057;">
+                <span class="dashicons dashicons-filter" style="vertical-align: middle;"></span> <?php echo esc_html__('Filtri', 'fp-task-agenda'); ?>
+            </h3>
+            <button type="button" class="button-link fp-filter-toggle" id="fp-filter-toggle" style="text-decoration: none; padding: 4px 8px;">
+                <span class="dashicons dashicons-arrow-down-alt"></span>
+            </button>
+        </div>
+        <form method="get" action="" class="fp-filter-form" id="fp-filter-form" style="display: flex;">
             <input type="hidden" name="page" value="fp-task-agenda">
             
-            <select name="status" id="filter-status">
-                <option value="all" <?php selected($current_status, 'all'); ?>><?php echo esc_html__('Tutti gli stati', 'fp-task-agenda'); ?></option>
-                <option value="pending" <?php selected($current_status, 'pending'); ?>><?php echo esc_html__('Da fare', 'fp-task-agenda'); ?></option>
-                <option value="in_progress" <?php selected($current_status, 'in_progress'); ?>><?php echo esc_html__('In corso', 'fp-task-agenda'); ?></option>
-                <option value="completed" <?php selected($current_status, 'completed'); ?>><?php echo esc_html__('Completati', 'fp-task-agenda'); ?></option>
-            </select>
+            <div class="fp-filter-group">
+                <label class="fp-filter-label"><?php echo esc_html__('Stato', 'fp-task-agenda'); ?></label>
+                <select name="status" id="filter-status" class="fp-filter-select">
+                    <option value="all" <?php selected($current_status, 'all'); ?>><?php echo esc_html__('Tutti', 'fp-task-agenda'); ?></option>
+                    <option value="pending" <?php selected($current_status, 'pending'); ?>><?php echo esc_html__('Da fare', 'fp-task-agenda'); ?></option>
+                    <option value="in_progress" <?php selected($current_status, 'in_progress'); ?>><?php echo esc_html__('In corso', 'fp-task-agenda'); ?></option>
+                    <option value="completed" <?php selected($current_status, 'completed'); ?>><?php echo esc_html__('Completati', 'fp-task-agenda'); ?></option>
+                </select>
+                <?php if ($current_status !== 'all'): ?>
+                    <span class="fp-filter-badge"><?php echo esc_html(ucfirst($current_status === 'in_progress' ? 'In corso' : $current_status)); ?></span>
+                <?php endif; ?>
+            </div>
             
-            <select name="priority" id="filter-priority">
-                <option value="all" <?php selected($current_priority, 'all'); ?>><?php echo esc_html__('Tutte le priorità', 'fp-task-agenda'); ?></option>
-                <option value="low" <?php selected($current_priority, 'low'); ?>><?php echo esc_html__('Bassa', 'fp-task-agenda'); ?></option>
-                <option value="normal" <?php selected($current_priority, 'normal'); ?>><?php echo esc_html__('Normale', 'fp-task-agenda'); ?></option>
-                <option value="high" <?php selected($current_priority, 'high'); ?>><?php echo esc_html__('Alta', 'fp-task-agenda'); ?></option>
-                <option value="urgent" <?php selected($current_priority, 'urgent'); ?>><?php echo esc_html__('Urgente', 'fp-task-agenda'); ?></option>
-            </select>
+            <div class="fp-filter-group">
+                <label class="fp-filter-label"><?php echo esc_html__('Priorità', 'fp-task-agenda'); ?></label>
+                <select name="priority" id="filter-priority" class="fp-filter-select">
+                    <option value="all" <?php selected($current_priority, 'all'); ?>><?php echo esc_html__('Tutte', 'fp-task-agenda'); ?></option>
+                    <option value="low" <?php selected($current_priority, 'low'); ?>><?php echo esc_html__('Bassa', 'fp-task-agenda'); ?></option>
+                    <option value="normal" <?php selected($current_priority, 'normal'); ?>><?php echo esc_html__('Normale', 'fp-task-agenda'); ?></option>
+                    <option value="high" <?php selected($current_priority, 'high'); ?>><?php echo esc_html__('Alta', 'fp-task-agenda'); ?></option>
+                    <option value="urgent" <?php selected($current_priority, 'urgent'); ?>><?php echo esc_html__('Urgente', 'fp-task-agenda'); ?></option>
+                </select>
+                <?php if ($current_priority !== 'all'): ?>
+                    <span class="fp-filter-badge fp-priority-<?php echo esc_attr($current_priority); ?>"><?php echo esc_html(ucfirst($current_priority)); ?></span>
+                <?php endif; ?>
+            </div>
             
-            <select name="client_id" id="filter-client">
-                <option value="all" <?php selected($current_client, 'all'); ?>><?php echo esc_html__('Tutti i clienti', 'fp-task-agenda'); ?></option>
-                <?php foreach ($clients as $client): ?>
-                    <option value="<?php echo esc_attr($client->id); ?>" <?php selected($current_client, $client->id); ?>>
-                        <?php echo esc_html($client->name); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
+            <div class="fp-filter-group">
+                <label class="fp-filter-label"><?php echo esc_html__('Cliente', 'fp-task-agenda'); ?></label>
+                <select name="client_id" id="filter-client" class="fp-filter-select">
+                    <option value="all" <?php selected($current_client, 'all'); ?>><?php echo esc_html__('Tutti', 'fp-task-agenda'); ?></option>
+                    <?php foreach ($clients as $client): ?>
+                        <option value="<?php echo esc_attr($client->id); ?>" <?php selected($current_client, $client->id); ?>>
+                            <?php echo esc_html($client->name); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <?php if ($current_client !== 'all'): ?>
+                    <span class="fp-filter-badge"><?php echo esc_html(get_post_meta($current_client, 'name', true) ?: $current_client); ?></span>
+                <?php endif; ?>
+            </div>
             
-            <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="<?php echo esc_attr__('Cerca task...', 'fp-task-agenda'); ?>" class="fp-search-input">
+            <div class="fp-filter-group fp-filter-search">
+                <label class="fp-filter-label"><?php echo esc_html__('Cerca', 'fp-task-agenda'); ?></label>
+                <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="<?php echo esc_attr__('Cerca task...', 'fp-task-agenda'); ?>" class="fp-search-input">
+            </div>
             
-            <button type="submit" class="button"><?php echo esc_html__('Filtra', 'fp-task-agenda'); ?></button>
-            
-            <?php if (!empty($search) || $current_status !== 'all' || $current_priority !== 'all' || $current_client !== 'all'): ?>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=fp-task-agenda')); ?>" class="button"><?php echo esc_html__('Reset', 'fp-task-agenda'); ?></a>
-            <?php endif; ?>
+            <div class="fp-filter-actions">
+                <button type="submit" class="button button-primary"><?php echo esc_html__('Filtra', 'fp-task-agenda'); ?></button>
+                
+                <?php if (!empty($search) || $current_status !== 'all' || $current_priority !== 'all' || $current_client !== 'all'): ?>
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=fp-task-agenda')); ?>" class="button"><?php echo esc_html__('Reset', 'fp-task-agenda'); ?></a>
+                <?php endif; ?>
+            </div>
         </form>
     </div>
     
@@ -301,7 +347,7 @@ if (!defined('ABSPATH')) {
                             </td>
                             <td>
                                 <?php if ($task->due_date): ?>
-                                    <span class="fp-due-date <?php echo $is_due_soon && !$is_completed ? 'fp-due-soon' : ''; ?>">
+                                    <span class="fp-due-date <?php echo $is_overdue ? 'fp-due-overdue' : ($is_due_soon && !$is_completed ? 'fp-due-soon' : ''); ?>">
                                         <?php echo esc_html($due_date_formatted); ?>
                                     </span>
                                 <?php else: ?>

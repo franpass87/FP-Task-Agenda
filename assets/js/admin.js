@@ -64,6 +64,9 @@
             // Drag & drop Kanban
             this.initKanbanDragDrop();
             
+            // Toggle filtri collassabili
+            $(document).on('click', '#fp-filter-toggle', this.toggleFilters);
+            
             // Previeni chiusura modal cliccando dentro
             $(document).on('click', '.fp-modal-content', function(e) {
                 e.stopPropagation();
@@ -507,37 +510,112 @@
         },
         
         renderKanban: function() {
-            var tasks = [];
-            $('.fp-task-row').each(function() {
-                var $row = $(this);
-                var task = {
-                    id: $row.data('task-id'),
-                    title: $row.find('.fp-task-title').text(),
-                    priority: $row.hasClass('priority-low') ? 'low' : 
-                              $row.hasClass('priority-normal') ? 'normal' :
-                              $row.hasClass('priority-high') ? 'high' : 'urgent',
-                    status: $row.find('.fp-status-quick-change').val() || 'pending',
-                    dueDate: $row.find('.fp-task-date').text(),
-                    client: $row.find('td:nth-child(3)').text().trim()
-                };
-                tasks.push(task);
-            });
-            
             // Reset colonne
             $('#kanban-pending, #kanban-in-progress, #kanban-completed').empty();
+            $('#count-pending, #count-in-progress, #count-completed').text('0');
             
-            // Popola colonne
-            var counts = {pending: 0, in_progress: 0, completed: 0};
-            tasks.forEach(function(task) {
-                var card = TaskAgenda.createKanbanCard(task);
-                $('#kanban-' + task.status).append(card);
-                counts[task.status]++;
+            // Carica tutti i task via AJAX (ignorando filtri tabella)
+            $.ajax({
+                url: fpTaskAgenda.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'fp_task_agenda_get_tasks',
+                    nonce: fpTaskAgenda.nonce,
+                    status: 'all',
+                    priority: 'all',
+                    client_id: 'all',
+                    search: '',
+                    page: 1,
+                    per_page: 1000 // Numero alto per ottenere tutti i task
+                },
+                success: function(response) {
+                    if (response.success && response.data.tasks) {
+                        var tasks = response.data.tasks;
+                        var counts = {pending: 0, in_progress: 0, completed: 0};
+                        
+                        tasks.forEach(function(task) {
+                            var card = TaskAgenda.createKanbanCard({
+                                id: task.id,
+                                title: task.title,
+                                priority: task.priority || 'normal',
+                                status: task.status || 'pending',
+                                dueDate: task.due_date ? TaskAgenda.formatDueDate(task.due_date) : '',
+                                client: task.client_name || ''
+                            });
+                            
+                            // Usa lo status effettivo del task
+                            var status = task.status || 'pending';
+                            $('#kanban-' + status.replace(/_/g, '-')).append(card);
+                            counts[status]++;
+                        });
+                        
+                        // Aggiorna contatori
+                        $('#count-pending').text(counts.pending || 0);
+                        $('#count-in-progress').text(counts.in_progress || 0);
+                        $('#count-completed').text(counts.completed || 0);
+                    }
+                },
+                error: function() {
+                    // Fallback: usa le righe della tabella se AJAX fallisce
+                    var tasks = [];
+                    $('.fp-task-row').each(function() {
+                        var $row = $(this);
+                        var statusValue = $row.find('.fp-status-quick-change').val();
+                        if (!statusValue) {
+                            // Prova a leggere dalla classe della riga
+                            if ($row.hasClass('fp-task-completed')) {
+                                statusValue = 'completed';
+                            } else if ($row.hasClass('fp-task-in-progress')) {
+                                statusValue = 'in_progress';
+                            } else {
+                                statusValue = 'pending';
+                            }
+                        }
+                        var task = {
+                            id: $row.data('task-id'),
+                            title: $row.find('.fp-task-title').text(),
+                            priority: $row.hasClass('priority-low') ? 'low' : 
+                                      $row.hasClass('priority-normal') ? 'normal' :
+                                      $row.hasClass('priority-high') ? 'high' : 'urgent',
+                            status: statusValue,
+                            dueDate: $row.find('.fp-due-date').text() || '',
+                            client: $row.find('td:nth-child(3)').text().trim()
+                        };
+                        tasks.push(task);
+                    });
+                    
+                    var counts = {pending: 0, in_progress: 0, completed: 0};
+                    tasks.forEach(function(task) {
+                        var card = TaskAgenda.createKanbanCard(task);
+                        var statusKey = task.status.replace(/_/g, '-');
+                        $('#kanban-' + statusKey).append(card);
+                        counts[task.status]++;
+                    });
+                    
+                    $('#count-pending').text(counts.pending || 0);
+                    $('#count-in-progress').text(counts.in_progress || 0);
+                    $('#count-completed').text(counts.completed || 0);
+                }
             });
+        },
+        
+        formatDueDate: function(dateString) {
+            if (!dateString) return '';
+            // Formatta la data in modo leggibile
+            var date = new Date(dateString);
+            var today = new Date();
+            var diffTime = date - today;
+            var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             
-            // Aggiorna contatori
-            $('#count-pending').text(counts.pending);
-            $('#count-in-progress').text(counts.in_progress);
-            $('#count-completed').text(counts.completed);
+            if (diffDays < 0) {
+                return 'Scaduto ' + Math.abs(diffDays) + ' giorni fa';
+            } else if (diffDays === 0) {
+                return 'Scade oggi';
+            } else if (diffDays === 1) {
+                return 'Scade domani';
+            } else {
+                return 'Scade tra ' + diffDays + ' giorni';
+            }
         },
         
         createKanbanCard: function(task) {
