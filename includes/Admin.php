@@ -316,10 +316,22 @@ class Admin {
         ));
         
         if (is_wp_error($result)) {
+            // Log errore per debug (solo in modalità debug)
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('FP Task Agenda - Errore inserimento task: ' . $result->get_error_message());
+            }
             wp_send_json_error(array('message' => $result->get_error_message()));
         }
         
+        if (empty($result)) {
+            wp_send_json_error(array('message' => __('Errore: nessun ID restituito dopo l\'inserimento', 'fp-task-agenda')));
+        }
+        
         $task = Database::get_task($result);
+        if (!$task) {
+            wp_send_json_error(array('message' => __('Task creato ma non trovato nel database', 'fp-task-agenda')));
+        }
+        
         wp_send_json_success(array('task' => $task, 'message' => __('Task aggiunto con successo', 'fp-task-agenda')));
     }
     

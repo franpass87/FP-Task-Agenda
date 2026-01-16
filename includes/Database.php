@@ -170,25 +170,71 @@ class Database {
             return new \WP_Error('missing_title', __('Il titolo è obbligatorio', 'fp-task-agenda'));
         }
         
-        // Sanitizzazione
-        $insert_data = array(
-            'title' => sanitize_text_field($data['title']),
-            'description' => sanitize_textarea_field($data['description']),
-            'priority' => in_array($data['priority'], array('low', 'normal', 'high', 'urgent')) ? $data['priority'] : 'normal',
-            'status' => in_array($data['status'], array('pending', 'in_progress', 'completed')) ? $data['status'] : 'pending',
-            'due_date' => !empty($data['due_date']) ? sanitize_text_field($data['due_date']) : null,
-            'client_id' => !empty($data['client_id']) ? absint($data['client_id']) : null,
-            'recurrence_type' => !empty($data['recurrence_type']) && in_array($data['recurrence_type'], array('daily', 'weekly', 'monthly')) ? $data['recurrence_type'] : null,
-            'recurrence_interval' => !empty($data['recurrence_interval']) ? absint($data['recurrence_interval']) : 1,
-            'recurrence_parent_id' => !empty($data['recurrence_parent_id']) ? absint($data['recurrence_parent_id']) : null,
-            'next_recurrence_date' => !empty($data['next_recurrence_date']) ? sanitize_text_field($data['next_recurrence_date']) : null,
-            'user_id' => absint($data['user_id'])
+        // Sanitizzazione e preparazione dati
+        $insert_data = array();
+        
+        // Campi obbligatori
+        $insert_data['title'] = sanitize_text_field($data['title']);
+        $insert_data['description'] = sanitize_textarea_field($data['description']);
+        $insert_data['priority'] = in_array($data['priority'], array('low', 'normal', 'high', 'urgent')) ? $data['priority'] : 'normal';
+        $insert_data['status'] = in_array($data['status'], array('pending', 'in_progress', 'completed')) ? $data['status'] : 'pending';
+        $insert_data['user_id'] = absint($data['user_id']);
+        
+        // Due date - converte YYYY-MM-DD in datetime se necessario
+        if (!empty($data['due_date'])) {
+            $due_date = sanitize_text_field($data['due_date']);
+            // Se è solo una data (YYYY-MM-DD), aggiungi l'orario
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $due_date)) {
+                $due_date .= ' 00:00:00';
+            }
+            $insert_data['due_date'] = $due_date;
+        } else {
+            $insert_data['due_date'] = null;
+        }
+        
+        // Client ID
+        $insert_data['client_id'] = !empty($data['client_id']) ? absint($data['client_id']) : null;
+        
+        // Recurrence type
+        $insert_data['recurrence_type'] = !empty($data['recurrence_type']) && in_array($data['recurrence_type'], array('daily', 'weekly', 'monthly')) ? $data['recurrence_type'] : null;
+        $insert_data['recurrence_interval'] = !empty($data['recurrence_interval']) ? absint($data['recurrence_interval']) : 1;
+        $insert_data['recurrence_parent_id'] = !empty($data['recurrence_parent_id']) ? absint($data['recurrence_parent_id']) : null;
+        
+        // Next recurrence date - converte in datetime se necessario
+        if (!empty($data['next_recurrence_date'])) {
+            $next_date = sanitize_text_field($data['next_recurrence_date']);
+            // Se è solo una data (YYYY-MM-DD), aggiungi l'orario
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $next_date)) {
+                $next_date .= ' 00:00:00';
+            }
+            $insert_data['next_recurrence_date'] = $next_date;
+        } else {
+            $insert_data['next_recurrence_date'] = null;
+        }
+        
+        // Prepara i formati per i campi
+        $formats = array(
+            '%s', // title
+            '%s', // description
+            '%s', // priority
+            '%s', // status
+            '%s', // due_date (può essere NULL)
+            '%d', // client_id (può essere NULL)
+            '%s', // recurrence_type (può essere NULL)
+            '%d', // recurrence_interval
+            '%d', // recurrence_parent_id (può essere NULL)
+            '%s', // next_recurrence_date (può essere NULL)
+            '%d'  // user_id
         );
         
-        $result = $wpdb->insert($table_name, $insert_data);
+        $result = $wpdb->insert($table_name, $insert_data, $formats);
         
         if ($result === false) {
-            return new \WP_Error('db_error', __('Errore durante il salvataggio del task', 'fp-task-agenda'));
+            $error_message = __('Errore durante il salvataggio del task', 'fp-task-agenda');
+            if ($wpdb->last_error) {
+                $error_message .= ': ' . $wpdb->last_error;
+            }
+            return new \WP_Error('db_error', $error_message);
         }
         
         return $wpdb->insert_id;
