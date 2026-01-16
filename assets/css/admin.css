@@ -241,41 +241,48 @@
 
 /* Task in progress - colore verde con bordo solido più spesso */
 .fp-task-row.fp-task-in-progress {
-    border: 5px solid #51cf66 !important;
+    outline: 5px solid #51cf66 !important;
+    outline-offset: -5px !important;
     border-left: 6px solid #51cf66 !important;
-    background: linear-gradient(90deg, rgba(81, 207, 102, 0.12) 0%, rgba(81, 207, 102, 0.06) 50%, rgba(81, 207, 102, 0.02) 100%) !important;
-    box-shadow: 0 0 0 1px rgba(81, 207, 102, 0.2) inset !important;
+    background: linear-gradient(90deg, rgba(81, 207, 102, 0.15) 0%, rgba(81, 207, 102, 0.08) 50%, rgba(81, 207, 102, 0.03) 100%) !important;
+    box-shadow: 0 0 0 3px rgba(81, 207, 102, 0.3), inset 0 0 0 1px rgba(81, 207, 102, 0.2) !important;
+    margin: 2px 0 !important;
 }
 
 .fp-task-row.fp-task-in-progress:hover {
-    border-color: #40c057 !important;
-    background: linear-gradient(90deg, rgba(81, 207, 102, 0.18) 0%, rgba(81, 207, 102, 0.10) 50%, rgba(81, 207, 102, 0.04) 100%) !important;
-    box-shadow: 0 0 0 1px rgba(81, 207, 102, 0.3) inset, 0 2px 8px rgba(81, 207, 102, 0.15) !important;
+    outline-color: #40c057 !important;
+    border-left-color: #40c057 !important;
+    background: linear-gradient(90deg, rgba(81, 207, 102, 0.20) 0%, rgba(81, 207, 102, 0.12) 50%, rgba(81, 207, 102, 0.05) 100%) !important;
+    box-shadow: 0 0 0 3px rgba(81, 207, 102, 0.4), inset 0 0 0 1px rgba(81, 207, 102, 0.3), 0 2px 8px rgba(81, 207, 102, 0.2) !important;
 }
 
 /* Task in progress con priorità - combinazione verde + colore priorità */
 .fp-task-row.fp-task-in-progress.priority-low {
-    border: 5px solid #51cf66 !important;
+    outline: 5px solid #51cf66 !important;
+    outline-offset: -5px !important;
     border-left: 6px solid #51cf66 !important;
-    background: linear-gradient(90deg, rgba(81, 207, 102, 0.15) 0%, rgba(116, 192, 252, 0.08) 30%, rgba(116, 192, 252, 0.03) 70%, rgba(81, 207, 102, 0.02) 100%) !important;
+    background: linear-gradient(90deg, rgba(81, 207, 102, 0.18) 0%, rgba(116, 192, 252, 0.10) 30%, rgba(116, 192, 252, 0.05) 70%, rgba(81, 207, 102, 0.03) 100%) !important;
 }
 
 .fp-task-row.fp-task-in-progress.priority-normal {
-    border: 5px solid #51cf66 !important;
+    outline: 5px solid #51cf66 !important;
+    outline-offset: -5px !important;
     border-left: 6px solid #51cf66 !important;
-    background: linear-gradient(90deg, rgba(81, 207, 102, 0.12) 0%, rgba(173, 181, 189, 0.06) 30%, rgba(173, 181, 189, 0.02) 70%, rgba(81, 207, 102, 0.02) 100%) !important;
+    background: linear-gradient(90deg, rgba(81, 207, 102, 0.15) 0%, rgba(173, 181, 189, 0.08) 30%, rgba(173, 181, 189, 0.03) 70%, rgba(81, 207, 102, 0.03) 100%) !important;
 }
 
 .fp-task-row.fp-task-in-progress.priority-high {
-    border: 5px solid #51cf66 !important;
+    outline: 5px solid #51cf66 !important;
+    outline-offset: -5px !important;
     border-left: 6px solid #51cf66 !important;
-    background: linear-gradient(90deg, rgba(81, 207, 102, 0.18) 0%, rgba(255, 212, 59, 0.10) 30%, rgba(255, 212, 59, 0.04) 70%, rgba(81, 207, 102, 0.02) 100%) !important;
+    background: linear-gradient(90deg, rgba(81, 207, 102, 0.20) 0%, rgba(255, 212, 59, 0.12) 30%, rgba(255, 212, 59, 0.06) 70%, rgba(81, 207, 102, 0.03) 100%) !important;
 }
 
 .fp-task-row.fp-task-in-progress.priority-urgent {
-    border: 5px solid #51cf66 !important;
+    outline: 5px solid #51cf66 !important;
+    outline-offset: -5px !important;
     border-left: 6px solid #51cf66 !important;
-    background: linear-gradient(90deg, rgba(81, 207, 102, 0.20) 0%, rgba(255, 107, 107, 0.12) 30%, rgba(255, 107, 107, 0.06) 70%, rgba(81, 207, 102, 0.02) 100%) !important;
+    background: linear-gradient(90deg, rgba(81, 207, 102, 0.22) 0%, rgba(255, 107, 107, 0.14) 30%, rgba(255, 107, 107, 0.08) 70%, rgba(81, 207, 102, 0.03) 100%) !important;
 }
 
 .fp-task-row.fp-task-in-progress.priority-low:hover,
