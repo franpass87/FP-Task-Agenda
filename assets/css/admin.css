@@ -156,6 +156,8 @@
     border: 1px solid #e9ecef;
     table-layout: fixed;
     width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
 }
 
 .fp-tasks-table th {
@@ -177,6 +179,7 @@
 .fp-task-row {
     transition: all 0.2s ease;
     border-bottom: 1px solid #f1f3f5;
+    position: relative;
 }
 
 .fp-task-row:last-child {
