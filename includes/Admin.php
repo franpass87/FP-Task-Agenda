@@ -101,14 +101,8 @@ class Admin {
      * Aggiungi favicon personalizzato nelle pagine del plugin
      */
     public function add_custom_favicon() {
-        global $hook_suffix;
-        
-        // Verifica se siamo in una delle pagine del plugin
-        $is_main_page = ($hook_suffix === 'toplevel_page_fp-task-agenda');
-        $is_clients_page = (strpos($hook_suffix, 'fp-task-agenda-clients') !== false);
-        $is_templates_page = (strpos($hook_suffix, 'fp-task-agenda-templates') !== false);
-        
-        if (!$is_main_page && !$is_clients_page && !$is_templates_page) {
+        $screen = get_current_screen();
+        if ($screen === null || ! str_contains((string) $screen->id, 'fp-task-agenda')) {
             return;
         }
         
