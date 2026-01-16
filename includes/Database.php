@@ -377,6 +377,13 @@ class Database {
                 WHEN 'completed' THEN 3 
                 ELSE 0 
             END " . $order_direction;
+        } elseif ($orderby_field === 'due_date') {
+            // Per due_date, metti i NULL alla fine in ASC, all'inizio in DESC
+            if ($order_direction === 'ASC') {
+                $orderby = "CASE WHEN due_date IS NULL THEN 1 ELSE 0 END ASC, due_date ASC";
+            } else {
+                $orderby = "CASE WHEN due_date IS NULL THEN 0 ELSE 1 END DESC, due_date DESC";
+            }
         } else {
             $orderby = $orderby_field . ' ' . $order_direction;
         }
