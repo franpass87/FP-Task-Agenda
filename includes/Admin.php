@@ -107,9 +107,12 @@ class Admin {
         }
         
         // Icona SVG da file (Font Awesome fa-solid fa-list-check)
-        $plugin_dir = dirname(dirname(__FILE__));
-        $favicon_path = $plugin_dir . '/assets/admin/favicon.svg';
-        $favicon_url = plugin_dir_url($plugin_dir . '/fp-task-agenda.php') . 'assets/admin/favicon.svg';
+        if (!defined('FP_TASK_AGENDA_PLUGIN_DIR') || !defined('FP_TASK_AGENDA_PLUGIN_URL')) {
+            return;
+        }
+        
+        $favicon_path = FP_TASK_AGENDA_PLUGIN_DIR . 'assets/admin/favicon.svg';
+        $favicon_url = FP_TASK_AGENDA_PLUGIN_URL . 'assets/admin/favicon.svg';
         
         // Verifica che il file esista
         if (!file_exists($favicon_path)) {
