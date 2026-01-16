@@ -212,27 +212,41 @@ class Database {
             $insert_data['next_recurrence_date'] = null;
         }
         
-        // Prepara i formati per i campi
-        $formats = array(
-            '%s', // title
-            '%s', // description
-            '%s', // priority
-            '%s', // status
-            '%s', // due_date (può essere NULL)
-            '%d', // client_id (può essere NULL)
-            '%s', // recurrence_type (può essere NULL)
-            '%d', // recurrence_interval
-            '%d', // recurrence_parent_id (può essere NULL)
-            '%s', // next_recurrence_date (può essere NULL)
-            '%d'  // user_id
-        );
+        // Prepara i formati per i campi (solo quelli presenti)
+        $formats = array();
+        foreach ($insert_data as $key => $value) {
+            if ($value === null) {
+                // Per i valori NULL, WordPress richiede che siano stringhe vuote o null
+                // ma è meglio rimuoverli dall'array e lasciare il default del DB
+                continue;
+            }
+            // Determina il formato in base al tipo di campo
+            if (in_array($key, array('client_id', 'recurrence_interval', 'recurrence_parent_id', 'user_id'))) {
+                $formats[] = '%d';
+            } else {
+                $formats[] = '%s';
+            }
+        }
         
-        $result = $wpdb->insert($table_name, $insert_data, $formats);
+        // Rimuovi i campi NULL dall'array (il DB userà i default)
+        $insert_data_clean = array();
+        foreach ($insert_data as $key => $value) {
+            if ($value !== null) {
+                $insert_data_clean[$key] = $value;
+            }
+        }
+        
+        $result = $wpdb->insert($table_name, $insert_data_clean, $formats);
         
         if ($result === false) {
             $error_message = __('Errore durante il salvataggio del task', 'fp-task-agenda');
             if ($wpdb->last_error) {
                 $error_message .= ': ' . $wpdb->last_error;
+            }
+            // Log aggiuntivo per debug
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('FP Task Agenda - Dati inserimento: ' . print_r($insert_data_clean, true));
+                error_log('FP Task Agenda - Formati: ' . print_r($formats, true));
             }
             return new \WP_Error('db_error', $error_message);
         }
