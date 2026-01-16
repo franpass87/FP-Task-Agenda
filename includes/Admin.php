@@ -113,16 +113,12 @@ class Admin {
         }
         
         // Icona SVG personalizzata per il plugin (checklist/task list)
-        $svg_icon = 'data:image/svg+xml;base64,' . base64_encode('
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-                <rect width="32" height="32" rx="4" fill="#40c057"/>
-                <path d="M8 10 L14 16 L24 6" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-                <line x1="8" y1="20" x2="24" y2="20" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
-                <line x1="8" y1="26" x2="20" y2="26" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-        ');
+        // Rimuovi spazi e newline per un encoding corretto
+        $svg_content = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="4" fill="#40c057"/><path d="M8 10 L14 16 L24 6" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><line x1="8" y1="20" x2="24" y2="20" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="26" x2="20" y2="26" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/></svg>';
+        $svg_icon = 'data:image/svg+xml;base64,' . base64_encode($svg_content);
         
-        echo '<link rel="icon" type="image/svg+xml" href="' . esc_url($svg_icon) . '" />' . "\n";
+        // Per data URI, usiamo esc_attr invece di esc_url
+        echo '<link rel="icon" type="image/svg+xml" href="' . esc_attr($svg_icon) . '" />' . "\n";
     }
     
     /**
