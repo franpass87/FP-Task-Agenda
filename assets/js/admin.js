@@ -12,8 +12,8 @@
         },
         
         bindEvents: function() {
-            // Apri modal aggiungi task
-            $(document).on('click', '#fp-add-task-btn', this.openAddModal);
+            // Apri modal aggiungi task (entrambi i pulsanti)
+            $(document).on('click', '#fp-add-task-btn, #fp-add-task-btn-empty', this.openAddModal);
             
             // Apri modal selezione template
             $(document).on('click', '#fp-create-from-template-btn', this.openTemplateSelectModal);
@@ -23,6 +23,9 @@
             
             // Chiudi modal
             $(document).on('click', '.fp-modal-close, .fp-modal-cancel, .fp-modal-backdrop', this.closeModal);
+            
+            // Gestione cambio tipo ricorrenza
+            $(document).on('change', '#fp-task-recurrence', this.handleRecurrenceTypeChange);
             
             // Chiudi modal template select
             $(document).on('click', '#fp-template-select-modal-backdrop, #fp-template-select-modal .fp-modal-cancel, #fp-template-select-modal .fp-modal-close', function() {
@@ -67,10 +70,44 @@
             // Toggle filtri collassabili
             $(document).on('click', '#fp-filter-toggle', this.toggleFilters);
             
+            // Toggle descrizione espansa
+            $(document).on('click', '.fp-toggle-description', this.toggleDescription);
+            
+            // Ripristina task archiviato
+            $(document).on('click', '.fp-restore-task', this.restoreTask);
+            
+            // Elimina definitivamente task
+            $(document).on('click', '.fp-permanently-delete-task', this.permanentlyDeleteTask);
+            
             // Previeni chiusura modal cliccando dentro
             $(document).on('click', '.fp-modal-content', function(e) {
                 e.stopPropagation();
             });
+        },
+        
+        toggleDescription: function(e) {
+            e.preventDefault();
+            var $btn = $(this);
+            var $container = $btn.closest('.fp-task-description-container');
+            var $preview = $container.find('.fp-task-description-preview');
+            var $full = $container.find('.fp-task-description-full');
+            var isExpanded = $btn.data('expanded') === true;
+            
+            if (isExpanded) {
+                // Comprimi
+                $preview.show();
+                $full.hide();
+                $btn.find('.fp-show-more').show();
+                $btn.find('.fp-show-less').hide();
+                $btn.data('expanded', false);
+            } else {
+                // Espandi
+                $preview.hide();
+                $full.show();
+                $btn.find('.fp-show-more').hide();
+                $btn.find('.fp-show-less').show();
+                $btn.data('expanded', true);
+            }
         },
         
         openAddModal: function() {
@@ -105,6 +142,26 @@
                 $('#fp-task-due-date').val(task.due_date ? task.due_date.split(' ')[0] : '');
                 $('#fp-task-client').val(task.client_id || '');
                 $('#fp-task-recurrence').val(task.recurrence_type || '');
+                
+                // Gestione recurrence_day
+                var recurrenceType = task.recurrence_type || '';
+                if (recurrenceType === 'monthly') {
+                    $('#fp-recurrence-day-row').show();
+                    $('#fp-task-recurrence-day-monthly').show().prop('name', 'recurrence_day').val(task.recurrence_day || '');
+                    $('#fp-task-recurrence-day-weekly').hide().prop('name', '');
+                    $('#fp-recurrence-day-desc-monthly').show();
+                    $('#fp-recurrence-day-desc-weekly').hide();
+                } else if (recurrenceType === 'weekly') {
+                    $('#fp-recurrence-day-row').show();
+                    $('#fp-task-recurrence-day-weekly').show().prop('name', 'recurrence_day').val(task.recurrence_day || '');
+                    $('#fp-task-recurrence-day-monthly').hide().prop('name', '');
+                    $('#fp-recurrence-day-desc-weekly').show();
+                    $('#fp-recurrence-day-desc-monthly').hide();
+                } else {
+                    $('#fp-recurrence-day-row').hide();
+                    $('.fp-recurrence-day-select').hide().prop('name', '').val('');
+                    $('.fp-recurrence-day-description').hide();
+                }
                 
                 $('#fp-modal-title').text(fpTaskAgenda.strings.editTask || 'Modifica Task');
                 $('#fp-task-status-row').show();
@@ -149,6 +206,15 @@
                 return;
             }
             
+            // Determina quale select recurrence_day usare
+            var recurrenceType = $('#fp-task-recurrence').val() || '';
+            var recurrenceDay = '';
+            if (recurrenceType === 'monthly') {
+                recurrenceDay = $('#fp-task-recurrence-day-monthly').val() || '';
+            } else if (recurrenceType === 'weekly') {
+                recurrenceDay = $('#fp-task-recurrence-day-weekly').val() || '';
+            }
+            
             var data = {
                 action: isEdit ? 'fp_task_agenda_update_task' : 'fp_task_agenda_add_task',
                 nonce: fpTaskAgenda.nonce,
@@ -157,7 +223,8 @@
                 priority: $('#fp-task-priority').val(),
                 due_date: $('#fp-task-due-date').val(),
                 client_id: $('#fp-task-client').val() || '',
-                recurrence_type: $('#fp-task-recurrence').val() || ''
+                recurrence_type: recurrenceType,
+                recurrence_day: recurrenceDay
             };
             
             if (isEdit) {
@@ -272,6 +339,35 @@
             $('#fp-task-id').val('');
             $('#fp-task-status-row').hide();
             $('#fp-task-client').val('');
+            // Reset campi ricorrenza
+            $('#fp-recurrence-day-row').hide();
+            $('.fp-recurrence-day-select').hide().val('');
+            $('.fp-recurrence-day-description').hide();
+        },
+        
+        handleRecurrenceTypeChange: function() {
+            var recurrenceType = $(this).val();
+            var $dayRow = $('#fp-recurrence-day-row');
+            var $monthlySelect = $('#fp-task-recurrence-day-monthly');
+            var $weeklySelect = $('#fp-task-recurrence-day-weekly');
+            var $monthlyDesc = $('#fp-recurrence-day-desc-monthly');
+            var $weeklyDesc = $('#fp-recurrence-day-desc-weekly');
+            
+            // Nascondi tutti i select e descrizioni
+            $('.fp-recurrence-day-select').hide().prop('name', '');
+            $('.fp-recurrence-day-description').hide();
+            
+            if (recurrenceType === 'monthly') {
+                $dayRow.show();
+                $monthlySelect.show().prop('name', 'recurrence_day');
+                $monthlyDesc.show();
+            } else if (recurrenceType === 'weekly') {
+                $dayRow.show();
+                $weeklySelect.show().prop('name', 'recurrence_day');
+                $weeklyDesc.show();
+            } else {
+                $dayRow.hide();
+            }
         },
         
         showModal: function() {
@@ -484,14 +580,43 @@
         
         showNotice: function(message, type) {
             type = type || 'info';
-            var notice = $('<div class="notice notice-' + type + ' is-dismissible"><p>' + message + '</p></div>');
-            $('.wrap').first().prepend(notice);
             
+            // Crea il container se non esiste
+            if ($('.fp-toast-container').length === 0) {
+                $('body').append('<div class="fp-toast-container"></div>');
+            }
+            
+            // Mappa tipo a classe e icona
+            var typeClass = 'fp-toast-' + (type === 'info' ? 'success' : type);
+            var iconClass = type === 'error' ? 'dashicons-warning' : 'dashicons-yes-alt';
+            
+            var toast = $(
+                '<div class="fp-toast ' + typeClass + '">' +
+                    '<div class="fp-toast-icon"><span class="dashicons ' + iconClass + '"></span></div>' +
+                    '<div class="fp-toast-content"><p class="fp-toast-message">' + message + '</p></div>' +
+                    '<button type="button" class="fp-toast-close"><span class="dashicons dashicons-no-alt"></span></button>' +
+                '</div>'
+            );
+            
+            $('.fp-toast-container').append(toast);
+            
+            // Gestione chiusura
+            toast.find('.fp-toast-close').on('click', function() {
+                toast.addClass('fp-toast-hiding');
+                setTimeout(function() {
+                    toast.remove();
+                }, 300);
+            });
+            
+            // Auto-rimuovi dopo 4 secondi
             setTimeout(function() {
-                notice.fadeOut(300, function() {
-                    $(this).remove();
-                });
-            }, 3000);
+                if (toast.length && !toast.hasClass('fp-toast-hiding')) {
+                    toast.addClass('fp-toast-hiding');
+                    setTimeout(function() {
+                        toast.remove();
+                    }, 300);
+                }
+            }, 4000);
         },
         
         toggleView: function() {
@@ -534,19 +659,33 @@
                         var counts = {pending: 0, in_progress: 0, completed: 0};
                         
                         tasks.forEach(function(task) {
+                            // Normalizza lo status (assicurati che sia uno dei valori validi)
+                            var status = task.status || 'pending';
+                            if (status !== 'pending' && status !== 'in_progress' && status !== 'completed') {
+                                // Se lo status non è valido, default a pending
+                                status = 'pending';
+                            }
+                            
                             var card = TaskAgenda.createKanbanCard({
                                 id: task.id,
                                 title: task.title,
                                 priority: task.priority || 'normal',
-                                status: task.status || 'pending',
+                                status: status,
                                 dueDate: task.due_date ? TaskAgenda.formatDueDate(task.due_date) : '',
                                 client: task.client_name || ''
                             });
                             
-                            // Usa lo status effettivo del task
-                            var status = task.status || 'pending';
-                            $('#kanban-' + status.replace(/_/g, '-')).append(card);
-                            counts[status]++;
+                            // Aggiungi la card alla colonna corretta
+                            var statusKey = status.replace(/_/g, '-');
+                            var $column = $('#kanban-' + statusKey);
+                            
+                            if ($column.length > 0) {
+                                $column.append(card);
+                                // Incrementa il contatore solo se la chiave esiste
+                                if (counts.hasOwnProperty(status)) {
+                                    counts[status]++;
+                                }
+                            }
                         });
                         
                         // Aggiorna contatori
@@ -755,6 +894,84 @@
                 $form.slideDown(200);
                 $toggle.removeClass('dashicons-arrow-down-alt').addClass('dashicons-arrow-up-alt');
             }
+        },
+        
+        restoreTask: function(e) {
+            e.preventDefault();
+            var $btn = $(this);
+            var taskId = $btn.data('task-id');
+            var $row = $btn.closest('.fp-archived-task-row');
+            
+            $btn.prop('disabled', true).text('Ripristino...');
+            
+            $.ajax({
+                url: fpTaskAgenda.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'fp_task_agenda_restore_task',
+                    nonce: fpTaskAgenda.nonce,
+                    id: taskId
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $row.fadeOut(300, function() {
+                            $(this).remove();
+                            // Aggiorna contatore se presente
+                            var $counter = $('.fp-archived-count');
+                            if ($counter.length) {
+                                var count = parseInt($counter.text()) - 1;
+                                $counter.text(count);
+                            }
+                        });
+                        TaskAgenda.showNotice(response.data.message || 'Task ripristinato', 'success');
+                    } else {
+                        TaskAgenda.showNotice(response.data.message || 'Errore durante il ripristino', 'error');
+                        $btn.prop('disabled', false).html('<span class="dashicons dashicons-undo" style="vertical-align: middle;"></span> Ripristina');
+                    }
+                },
+                error: function() {
+                    TaskAgenda.showNotice('Errore di connessione', 'error');
+                    $btn.prop('disabled', false).html('<span class="dashicons dashicons-undo" style="vertical-align: middle;"></span> Ripristina');
+                }
+            });
+        },
+        
+        permanentlyDeleteTask: function(e) {
+            e.preventDefault();
+            var $btn = $(this);
+            var taskId = $btn.data('task-id');
+            var $row = $btn.closest('.fp-archived-task-row');
+            
+            if (!confirm('Sei sicuro di voler eliminare definitivamente questo task? Questa azione è irreversibile.')) {
+                return;
+            }
+            
+            $btn.prop('disabled', true);
+            
+            $.ajax({
+                url: fpTaskAgenda.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'fp_task_agenda_permanently_delete_task',
+                    nonce: fpTaskAgenda.nonce,
+                    id: taskId
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $row.fadeOut(300, function() {
+                            $(this).remove();
+                        });
+                        TaskAgenda.showNotice(response.data.message || 'Task eliminato definitivamente', 'success');
+                    } else {
+                        TaskAgenda.showNotice(response.data.message || 'Errore durante l\'eliminazione', 'error');
+                        $btn.prop('disabled', false);
+                    }
+                },
+                error: function() {
+                    TaskAgenda.showNotice('Errore di connessione', 'error');
+                    $btn.prop('disabled', false);
+                }
+            });
         }
     };
     

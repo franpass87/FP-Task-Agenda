@@ -111,7 +111,8 @@ class Database {
         $recurrence_columns = array(
             'recurrence_type' => "ALTER TABLE $table_name ADD COLUMN recurrence_type varchar(20) NULL AFTER client_id",
             'recurrence_interval' => "ALTER TABLE $table_name ADD COLUMN recurrence_interval int(11) NULL DEFAULT 1 AFTER recurrence_type",
-            'recurrence_parent_id' => "ALTER TABLE $table_name ADD COLUMN recurrence_parent_id bigint(20) NULL AFTER recurrence_interval",
+            'recurrence_day' => "ALTER TABLE $table_name ADD COLUMN recurrence_day int(11) NULL AFTER recurrence_interval",
+            'recurrence_parent_id' => "ALTER TABLE $table_name ADD COLUMN recurrence_parent_id bigint(20) NULL AFTER recurrence_day",
             'next_recurrence_date' => "ALTER TABLE $table_name ADD COLUMN next_recurrence_date datetime NULL AFTER recurrence_parent_id"
         );
         
@@ -130,6 +131,17 @@ class Database {
                     $wpdb->query("ALTER TABLE $table_name ADD KEY next_recurrence_date (next_recurrence_date)");
                 }
             }
+        }
+        
+        // Aggiungi colonna deleted_at per soft delete
+        $deleted_at_check = $wpdb->get_results($wpdb->prepare(
+            "SHOW COLUMNS FROM $table_name LIKE %s",
+            'deleted_at'
+        ));
+        
+        if (empty($deleted_at_check)) {
+            $wpdb->query("ALTER TABLE $table_name ADD COLUMN deleted_at datetime NULL AFTER completed_at");
+            $wpdb->query("ALTER TABLE $table_name ADD KEY deleted_at (deleted_at)");
         }
     }
     
@@ -158,6 +170,7 @@ class Database {
             'client_id' => null,
             'recurrence_type' => null,
             'recurrence_interval' => 1,
+            'recurrence_day' => null,
             'recurrence_parent_id' => null,
             'next_recurrence_date' => null,
             'user_id' => get_current_user_id()
@@ -204,6 +217,13 @@ class Database {
             $insert_data['recurrence_interval'] = !empty($data['recurrence_interval']) ? absint($data['recurrence_interval']) : 1;
             $insert_data['recurrence_parent_id'] = !empty($data['recurrence_parent_id']) ? absint($data['recurrence_parent_id']) : null;
             
+            // Recurrence day - giorno specifico per ricorrenza mensile (1-31) o settimanale (0-6)
+            if (!empty($data['recurrence_day'])) {
+                $insert_data['recurrence_day'] = absint($data['recurrence_day']);
+            } else {
+                $insert_data['recurrence_day'] = null;
+            }
+            
             // Next recurrence date - converte in datetime se necessario
             if (!empty($data['next_recurrence_date'])) {
                 $next_date = sanitize_text_field($data['next_recurrence_date']);
@@ -230,7 +250,7 @@ class Database {
         $formats = array();
         foreach ($insert_data_clean as $key => $value) {
             // Determina il formato in base al tipo di campo
-            if (in_array($key, array('client_id', 'recurrence_interval', 'recurrence_parent_id', 'user_id'))) {
+            if (in_array($key, array('client_id', 'recurrence_interval', 'recurrence_day', 'recurrence_parent_id', 'user_id'))) {
                 $formats[] = '%d';
             } else {
                 $formats[] = '%s';
@@ -310,6 +330,10 @@ class Database {
             $update_data['recurrence_interval'] = !empty($data['recurrence_interval']) ? absint($data['recurrence_interval']) : 1;
         }
         
+        if (isset($data['recurrence_day'])) {
+            $update_data['recurrence_day'] = !empty($data['recurrence_day']) ? absint($data['recurrence_day']) : null;
+        }
+        
         if (isset($data['next_recurrence_date'])) {
             $update_data['next_recurrence_date'] = !empty($data['next_recurrence_date']) ? sanitize_text_field($data['next_recurrence_date']) : null;
         }
@@ -334,7 +358,7 @@ class Database {
     }
     
     /**
-     * Elimina un task
+     * Elimina un task (soft delete - imposta deleted_at)
      */
     public static function delete_task($id) {
         global $wpdb;
@@ -347,6 +371,66 @@ class Database {
             return new \WP_Error('not_found', __('Task non trovato', 'fp-task-agenda'));
         }
         
+        // Soft delete: imposta deleted_at invece di eliminare fisicamente
+        $result = $wpdb->update(
+            $table_name,
+            array('deleted_at' => current_time('mysql')),
+            array('id' => absint($id)),
+            array('%s'),
+            array('%d')
+        );
+        
+        if ($result === false) {
+            return new \WP_Error('db_error', __('Errore durante l\'archiviazione del task', 'fp-task-agenda'));
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Ripristina un task archiviato
+     */
+    public static function restore_task($id) {
+        global $wpdb;
+        
+        $table_name = self::get_table_name();
+        
+        // Verifica che il task archiviato esista e appartenga all'utente corrente
+        $task = self::get_archived_task($id);
+        if (!$task || $task->user_id != get_current_user_id()) {
+            return new \WP_Error('not_found', __('Task archiviato non trovato', 'fp-task-agenda'));
+        }
+        
+        // Ripristina: imposta deleted_at a NULL
+        $result = $wpdb->update(
+            $table_name,
+            array('deleted_at' => null),
+            array('id' => absint($id)),
+            array('%s'),
+            array('%d')
+        );
+        
+        if ($result === false) {
+            return new \WP_Error('db_error', __('Errore durante il ripristino del task', 'fp-task-agenda'));
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Elimina definitivamente un task (hard delete)
+     */
+    public static function permanently_delete_task($id) {
+        global $wpdb;
+        
+        $table_name = self::get_table_name();
+        
+        // Verifica che il task esista e appartenga all'utente corrente
+        $task = self::get_archived_task($id);
+        if (!$task || $task->user_id != get_current_user_id()) {
+            return new \WP_Error('not_found', __('Task non trovato', 'fp-task-agenda'));
+        }
+        
         $result = $wpdb->delete(
             $table_name,
             array('id' => absint($id)),
@@ -354,22 +438,22 @@ class Database {
         );
         
         if ($result === false) {
-            return new \WP_Error('db_error', __('Errore durante l\'eliminazione del task', 'fp-task-agenda'));
+            return new \WP_Error('db_error', __('Errore durante l\'eliminazione definitiva del task', 'fp-task-agenda'));
         }
         
         return true;
     }
     
     /**
-     * Ottiene un singolo task
+     * Ottiene un task archiviato (con deleted_at)
      */
-    public static function get_task($id) {
+    public static function get_archived_task($id) {
         global $wpdb;
         
         $table_name = self::get_table_name();
         
         $task = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $table_name WHERE id = %d AND user_id = %d",
+            "SELECT * FROM $table_name WHERE id = %d AND user_id = %d AND deleted_at IS NOT NULL",
             absint($id),
             get_current_user_id()
         ));
@@ -378,7 +462,126 @@ class Database {
     }
     
     /**
-     * Ottiene i task con filtri
+     * Ottiene i task archiviati
+     */
+    public static function get_archived_tasks($args = array()) {
+        global $wpdb;
+        
+        $table_name = self::get_table_name();
+        
+        $defaults = array(
+            'per_page' => 20,
+            'page' => 1,
+            'orderby' => 'deleted_at',
+            'order' => 'DESC',
+            'search' => ''
+        );
+        
+        $args = wp_parse_args($args, $defaults);
+        
+        $where = array(
+            "user_id = " . get_current_user_id(),
+            "deleted_at IS NOT NULL"
+        );
+        
+        if (!empty($args['search'])) {
+            $search_term = '%' . $wpdb->esc_like($args['search']) . '%';
+            $where[] = $wpdb->prepare("(title LIKE %s OR description LIKE %s)", $search_term, $search_term);
+        }
+        
+        $where_clause = implode(' AND ', $where);
+        
+        $allowed_orderby = array('id', 'title', 'deleted_at', 'created_at');
+        $orderby_field = in_array($args['orderby'], $allowed_orderby) ? $args['orderby'] : 'deleted_at';
+        $order_direction = strtoupper($args['order']) === 'ASC' ? 'ASC' : 'DESC';
+        
+        $offset = ($args['page'] - 1) * $args['per_page'];
+        $limit = absint($args['per_page']);
+        
+        $query = "SELECT * FROM $table_name WHERE $where_clause ORDER BY $orderby_field $order_direction LIMIT $limit OFFSET $offset";
+        
+        return $wpdb->get_results($query);
+    }
+    
+    /**
+     * Conta i task archiviati
+     */
+    public static function count_archived_tasks($args = array()) {
+        global $wpdb;
+        
+        $table_name = self::get_table_name();
+        
+        $where = array(
+            "user_id = " . get_current_user_id(),
+            "deleted_at IS NOT NULL"
+        );
+        
+        if (!empty($args['search'])) {
+            $search_term = '%' . $wpdb->esc_like($args['search']) . '%';
+            $where[] = $wpdb->prepare("(title LIKE %s OR description LIKE %s)", $search_term, $search_term);
+        }
+        
+        $where_clause = implode(' AND ', $where);
+        
+        return absint($wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE $where_clause"));
+    }
+    
+    /**
+     * Pulisce i task archiviati più vecchi di X giorni (eliminazione definitiva)
+     */
+    public static function cleanup_archived_tasks($days = 30) {
+        global $wpdb;
+        
+        $table_name = self::get_table_name();
+        
+        $cutoff_date = date('Y-m-d H:i:s', strtotime("-{$days} days"));
+        
+        $result = $wpdb->query($wpdb->prepare(
+            "DELETE FROM $table_name WHERE deleted_at IS NOT NULL AND deleted_at < %s AND user_id = %d",
+            $cutoff_date,
+            get_current_user_id()
+        ));
+        
+        return $result;
+    }
+    
+    /**
+     * Pulisce TUTTI i task archiviati più vecchi di X giorni (per cron job)
+     */
+    public static function cleanup_all_archived_tasks($days = 30) {
+        global $wpdb;
+        
+        $table_name = self::get_table_name();
+        
+        $cutoff_date = date('Y-m-d H:i:s', strtotime("-{$days} days"));
+        
+        $result = $wpdb->query($wpdb->prepare(
+            "DELETE FROM $table_name WHERE deleted_at IS NOT NULL AND deleted_at < %s",
+            $cutoff_date
+        ));
+        
+        return $result;
+    }
+    
+    /**
+     * Ottiene un singolo task (esclude archiviati)
+     */
+    public static function get_task($id) {
+        global $wpdb;
+        
+        $table_name = self::get_table_name();
+        
+        $task = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table_name WHERE id = %d AND user_id = %d AND deleted_at IS NULL",
+            absint($id),
+            get_current_user_id()
+        ));
+        
+        return $task;
+    }
+    
+    /**
+     * Ottiene i task con filtri (esclude archiviati)
      */
     public static function get_tasks($args = array()) {
         global $wpdb;
@@ -398,7 +601,10 @@ class Database {
         
         $args = wp_parse_args($args, $defaults);
         
-        $where = array("user_id = " . get_current_user_id());
+        $where = array(
+            "user_id = " . get_current_user_id(),
+            "deleted_at IS NULL"
+        );
         
         if ($args['status'] !== 'all') {
             $where[] = $wpdb->prepare("status = %s", $args['status']);
@@ -421,11 +627,12 @@ class Database {
         $order_direction = strtoupper($args['order']) === 'ASC' ? 'ASC' : 'DESC';
         
         // Per priorità, usa un CASE per ordinare logicamente invece che alfabeticamente
-        // Task completati vanno sempre in fondo
+        // Task scadute (overdue) vanno sempre in cima, poi in corso, poi pending, poi completati in fondo
         if ($orderby_field === 'priority') {
             // Ordine logico: urgent=4, high=3, normal=2, low=1
-            // Status: in_progress=0, pending=1, completed=2 (in fondo)
+            // Task scadute (overdue) = -1 (prima di tutto), in_progress=0, pending=1, completed=2 (in fondo)
             $orderby = "CASE 
+                WHEN status != 'completed' AND due_date IS NOT NULL AND DATE(due_date) < CURDATE() THEN -1
                 WHEN status = 'in_progress' THEN 0
                 WHEN status = 'completed' THEN 2
                 ELSE 1 
@@ -437,53 +644,60 @@ class Database {
                 ELSE 0 
             END " . $order_direction;
         } elseif ($orderby_field === 'status') {
-            // Per status, ordine logico: in_progress=0 (prima), pending=1, completed=2 (in fondo)
-            $orderby = "CASE status 
-                WHEN 'in_progress' THEN 0
-                WHEN 'pending' THEN 1 
-                WHEN 'completed' THEN 2 
+            // Per status, ordine logico: scadute=-1 (prima), in_progress=0, pending=1, completed=2 (in fondo)
+            $orderby = "CASE 
+                WHEN status != 'completed' AND due_date IS NOT NULL AND DATE(due_date) < CURDATE() THEN -1
+                WHEN status = 'in_progress' THEN 0
+                WHEN status = 'pending' THEN 1 
+                WHEN status = 'completed' THEN 2 
                 ELSE 1 
             END ASC";
         } elseif ($orderby_field === 'due_date') {
-            // Per due_date: in_progress in cima, completed in fondo, poi ordina per data
+            // Per due_date: task scadute in cima, poi in_progress, poi completed in fondo, poi ordina per data
             // I NULL alla fine in ASC, all'inizio in DESC
             if ($order_direction === 'ASC') {
                 $orderby = "CASE 
+                    WHEN status != 'completed' AND due_date IS NOT NULL AND DATE(due_date) < CURDATE() THEN -1
                     WHEN status = 'in_progress' THEN 0
                     WHEN status = 'completed' THEN 2
                     ELSE 1 
                 END ASC, CASE WHEN due_date IS NULL THEN 1 ELSE 0 END ASC, due_date ASC";
             } else {
                 $orderby = "CASE 
+                    WHEN status != 'completed' AND due_date IS NOT NULL AND DATE(due_date) < CURDATE() THEN -1
                     WHEN status = 'in_progress' THEN 0
                     WHEN status = 'completed' THEN 2
                     ELSE 1 
                 END ASC, CASE WHEN due_date IS NULL THEN 0 ELSE 1 END DESC, due_date DESC";
             }
         } elseif ($orderby_field === 'created_at') {
-            // Status: in_progress=0, pending=1, completed=2 (in fondo), poi ordina per data creazione
+            // Task scadute=-1 (prima), in_progress=0, pending=1, completed=2 (in fondo), poi ordina per data creazione
             $orderby = "CASE 
+                WHEN status != 'completed' AND due_date IS NOT NULL AND DATE(due_date) < CURDATE() THEN -1
                 WHEN status = 'in_progress' THEN 0
                 WHEN status = 'completed' THEN 2
                 ELSE 1 
             END ASC, created_at " . $order_direction;
         } elseif ($orderby_field === 'title') {
-            // Status: in_progress=0, pending=1, completed=2 (in fondo), poi ordina per titolo
+            // Task scadute=-1 (prima), in_progress=0, pending=1, completed=2 (in fondo), poi ordina per titolo
             $orderby = "CASE 
+                WHEN status != 'completed' AND due_date IS NOT NULL AND DATE(due_date) < CURDATE() THEN -1
                 WHEN status = 'in_progress' THEN 0
                 WHEN status = 'completed' THEN 2
                 ELSE 1 
             END ASC, title " . $order_direction;
         } elseif ($orderby_field === 'client_id') {
-            // Status: in_progress=0, pending=1, completed=2 (in fondo), poi ordina per cliente
+            // Task scadute=-1 (prima), in_progress=0, pending=1, completed=2 (in fondo), poi ordina per cliente
             $orderby = "CASE 
+                WHEN status != 'completed' AND due_date IS NOT NULL AND DATE(due_date) < CURDATE() THEN -1
                 WHEN status = 'in_progress' THEN 0
                 WHEN status = 'completed' THEN 2
                 ELSE 1 
             END ASC, client_id " . $order_direction;
         } else {
-            // Status: in_progress=0, pending=1, completed=2 (in fondo), poi ordina per campo specificato
+            // Task scadute=-1 (prima), in_progress=0, pending=1, completed=2 (in fondo), poi ordina per campo specificato
             $orderby = "CASE 
+                WHEN status != 'completed' AND due_date IS NOT NULL AND DATE(due_date) < CURDATE() THEN -1
                 WHEN status = 'in_progress' THEN 0
                 WHEN status = 'completed' THEN 2
                 ELSE 1 
@@ -501,7 +715,7 @@ class Database {
     }
     
     /**
-     * Conta i task in scadenza (entro 3 giorni, non completati)
+     * Conta i task in scadenza (entro 3 giorni, non completati, non archiviati)
      */
     public static function count_tasks_due_soon() {
         global $wpdb;
@@ -516,7 +730,8 @@ class Database {
             AND status != 'completed' 
             AND due_date IS NOT NULL 
             AND DATE(due_date) >= %s 
-            AND DATE(due_date) <= %s",
+            AND DATE(due_date) <= %s
+            AND deleted_at IS NULL",
             get_current_user_id(),
             $today,
             $three_days_later
@@ -526,7 +741,7 @@ class Database {
     }
     
     /**
-     * Conta i task con filtri
+     * Conta i task con filtri (esclude archiviati)
      */
     public static function count_tasks($args = array()) {
         global $wpdb;
@@ -542,7 +757,10 @@ class Database {
         
         $args = wp_parse_args($args, $defaults);
         
-        $where = array("user_id = " . get_current_user_id());
+        $where = array(
+            "user_id = " . get_current_user_id(),
+            "deleted_at IS NULL"
+        );
         
         if ($args['status'] !== 'all') {
             $where[] = $wpdb->prepare("status = %s", $args['status']);

@@ -25,15 +25,17 @@ if (!defined('ABSPATH')) {
             </h1>
         </div>
         <div class="fp-header-actions">
-            <button type="button" class="page-title-action" id="fp-add-task-btn">
+            <button type="button" class="fp-btn fp-btn-primary" id="fp-add-task-btn">
+                <span class="dashicons dashicons-plus-alt2"></span>
                 <?php echo esc_html__('Aggiungi Task', 'fp-task-agenda'); ?>
             </button>
             
             <?php 
             $templates = \FP\TaskAgenda\Template::get_all();
-            $template_btn_class = empty($templates) ? 'page-title-action fp-btn-disabled' : 'page-title-action';
+            $template_btn_class = empty($templates) ? 'fp-btn fp-btn-secondary fp-btn-disabled' : 'fp-btn fp-btn-secondary';
             ?>
             <button type="button" class="<?php echo esc_attr($template_btn_class); ?>" id="fp-create-from-template-btn" <?php echo empty($templates) ? 'title="' . esc_attr__('Crea prima un template nella pagina Template', 'fp-task-agenda') . '"' : ''; ?>>
+                <span class="dashicons dashicons-media-document"></span>
                 <?php echo esc_html__('Crea da Template', 'fp-task-agenda'); ?>
             </button>
         </div>
@@ -105,27 +107,52 @@ if (!defined('ABSPATH')) {
     </div>
     
     <!-- Statistiche -->
+    <?php 
+    // Calcola percentuale completamento
+    $completion_percentage = $stats['all'] > 0 ? round(($stats['completed'] / $stats['all']) * 100) : 0;
+    ?>
     <div class="fp-task-stats">
         <a href="<?php echo esc_url(add_query_arg(array('status' => 'all'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-card-link <?php echo ($current_status === 'all' && $current_priority === 'all') ? 'fp-stat-active' : ''; ?>">
-            <span class="fp-stat-label"><?php echo esc_html__('Totali', 'fp-task-agenda'); ?></span>
+            <span class="fp-stat-label">
+                <span class="dashicons dashicons-list-view"></span>
+                <?php echo esc_html__('Totali', 'fp-task-agenda'); ?>
+            </span>
             <span class="fp-stat-value"><?php echo esc_html($stats['all']); ?></span>
+            <?php if ($stats['all'] > 0): ?>
+            <div class="fp-stat-progress-bar">
+                <div class="fp-stat-progress-fill" style="width: <?php echo esc_attr($completion_percentage); ?>%"></div>
+            </div>
+            <span class="fp-stat-percentage"><?php echo esc_html($completion_percentage); ?>% completato</span>
+            <?php endif; ?>
         </a>
         <a href="<?php echo esc_url(add_query_arg(array('status' => 'pending'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-pending fp-stat-card-link <?php echo $current_status === 'pending' ? 'fp-stat-active' : ''; ?>">
-            <span class="fp-stat-label"><?php echo esc_html__('Da fare', 'fp-task-agenda'); ?></span>
+            <span class="fp-stat-label">
+                <span class="dashicons dashicons-clock"></span>
+                <?php echo esc_html__('Da fare', 'fp-task-agenda'); ?>
+            </span>
             <span class="fp-stat-value"><?php echo esc_html($stats['pending']); ?></span>
         </a>
         <a href="<?php echo esc_url(add_query_arg(array('status' => 'in_progress'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-progress fp-stat-card-link <?php echo $current_status === 'in_progress' ? 'fp-stat-active' : ''; ?>">
-            <span class="fp-stat-label"><?php echo esc_html__('In corso', 'fp-task-agenda'); ?></span>
+            <span class="fp-stat-label">
+                <span class="dashicons dashicons-update"></span>
+                <?php echo esc_html__('In corso', 'fp-task-agenda'); ?>
+            </span>
             <span class="fp-stat-value"><?php echo esc_html($stats['in_progress']); ?></span>
         </a>
         <?php if ($stats['due_soon'] > 0): ?>
         <a href="<?php echo esc_url(add_query_arg(array('status' => 'all', 'orderby' => 'due_date', 'order' => 'ASC'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-due-soon fp-stat-card-link">
-            <span class="fp-stat-label"><?php echo esc_html__('In scadenza', 'fp-task-agenda'); ?></span>
+            <span class="fp-stat-label">
+                <span class="dashicons dashicons-warning"></span>
+                <?php echo esc_html__('In scadenza', 'fp-task-agenda'); ?>
+            </span>
             <span class="fp-stat-value"><?php echo esc_html($stats['due_soon']); ?></span>
         </a>
         <?php endif; ?>
         <a href="<?php echo esc_url(add_query_arg(array('status' => 'completed'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-completed fp-stat-card-link <?php echo $current_status === 'completed' ? 'fp-stat-active' : ''; ?>">
-            <span class="fp-stat-label"><?php echo esc_html__('Completati', 'fp-task-agenda'); ?></span>
+            <span class="fp-stat-label">
+                <span class="dashicons dashicons-yes-alt"></span>
+                <?php echo esc_html__('Completati', 'fp-task-agenda'); ?>
+            </span>
             <span class="fp-stat-value"><?php echo esc_html($stats['completed']); ?></span>
         </a>
     </div>
@@ -203,8 +230,29 @@ if (!defined('ABSPATH')) {
     <!-- Lista Task - Vista Tabella -->
     <div class="fp-tasks-container fp-view-table-view">
         <?php if (empty($tasks)): ?>
-            <div class="fp-no-tasks">
-                <p><?php echo esc_html__('Nessun task trovato.', 'fp-task-agenda'); ?></p>
+            <div class="fp-empty-state">
+                <div class="fp-empty-state-icon">
+                    <span class="dashicons dashicons-clipboard"></span>
+                </div>
+                <h3 class="fp-empty-state-title"><?php echo esc_html__('Nessun task trovato', 'fp-task-agenda'); ?></h3>
+                <p class="fp-empty-state-description">
+                    <?php if (!empty($search) || $current_status !== 'all' || $current_priority !== 'all'): ?>
+                        <?php echo esc_html__('Prova a modificare i filtri o la ricerca per trovare i task.', 'fp-task-agenda'); ?>
+                    <?php else: ?>
+                        <?php echo esc_html__('Inizia creando il tuo primo task per organizzare le attività.', 'fp-task-agenda'); ?>
+                    <?php endif; ?>
+                </p>
+                <?php if (empty($search) && $current_status === 'all' && $current_priority === 'all'): ?>
+                    <button type="button" class="button button-primary button-hero fp-empty-state-cta" id="fp-add-task-btn-empty">
+                        <span class="dashicons dashicons-plus-alt2"></span>
+                        <?php echo esc_html__('Crea il primo task', 'fp-task-agenda'); ?>
+                    </button>
+                <?php else: ?>
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=fp-task-agenda')); ?>" class="button button-secondary">
+                        <span class="dashicons dashicons-dismiss"></span>
+                        <?php echo esc_html__('Rimuovi filtri', 'fp-task-agenda'); ?>
+                    </a>
+                <?php endif; ?>
             </div>
         <?php else: ?>
             <!-- Bulk Actions -->
@@ -304,10 +352,11 @@ if (!defined('ABSPATH')) {
                         $priority_icon = \FP\TaskAgenda\Task::get_priority_icon($task->priority);
                         $due_date_formatted = \FP\TaskAgenda\Task::format_due_date($task->due_date);
                         $is_due_soon = \FP\TaskAgenda\Task::is_due_soon($task->due_date);
+                        $is_overdue = \FP\TaskAgenda\Task::is_overdue($task->due_date);
                         $is_completed = $task->status === 'completed';
                         $is_in_progress = $task->status === 'in_progress';
                         ?>
-                        <tr class="fp-task-row <?php echo esc_attr($priority_class); ?> <?php echo $is_completed ? 'fp-task-completed' : ''; ?> <?php echo $is_in_progress ? 'fp-task-in-progress' : ''; ?> <?php echo $is_due_soon && !$is_completed ? 'fp-task-due-soon' : ''; ?>" data-task-id="<?php echo esc_attr($task->id); ?>">
+                        <tr class="fp-task-row <?php echo esc_attr($priority_class); ?> <?php echo $is_completed ? 'fp-task-completed' : ''; ?> <?php echo $is_in_progress && !$is_overdue ? 'fp-task-in-progress' : ''; ?> <?php echo $is_due_soon && !$is_completed && !$is_overdue ? 'fp-task-due-soon' : ''; ?> <?php echo $is_overdue && !$is_completed ? 'fp-task-overdue' : ''; ?>" data-task-id="<?php echo esc_attr($task->id); ?>">
                             <th scope="row" class="check-column">
                                 <input type="checkbox" class="fp-task-checkbox" name="task[]" value="<?php echo esc_attr($task->id); ?>" <?php checked($is_completed); ?> data-task-id="<?php echo esc_attr($task->id); ?>">
                             </th>
@@ -338,7 +387,21 @@ if (!defined('ABSPATH')) {
                             <td>
                                 <strong class="fp-task-title"><?php echo esc_html($task->title); ?></strong>
                                 <?php if (!empty($task->description)): ?>
-                                    <br><small class="fp-task-description"><?php echo esc_html(wp_trim_words($task->description, 15)); ?></small>
+                                    <?php 
+                                    $description_length = mb_strlen($task->description);
+                                    $is_long = $description_length > 100;
+                                    $preview = $is_long ? mb_substr($task->description, 0, 100) . '...' : $task->description;
+                                    ?>
+                                    <div class="fp-task-description-container">
+                                        <small class="fp-task-description fp-task-description-preview"><?php echo esc_html($preview); ?></small>
+                                        <?php if ($is_long): ?>
+                                            <small class="fp-task-description fp-task-description-full" style="display: none;"><?php echo nl2br(esc_html($task->description)); ?></small>
+                                            <button type="button" class="button-link fp-toggle-description" data-expanded="false">
+                                                <span class="fp-show-more"><?php echo esc_html__('Mostra tutto', 'fp-task-agenda'); ?></span>
+                                                <span class="fp-show-less" style="display: none;"><?php echo esc_html__('Nascondi', 'fp-task-agenda'); ?></span>
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
                                 <?php endif; ?>
                             </td>
                             <td>
@@ -361,10 +424,32 @@ if (!defined('ABSPATH')) {
                                     $recurrence_label = isset($recurrence_labels[$task->recurrence_type]) 
                                         ? $recurrence_labels[$task->recurrence_type] 
                                         : ucfirst($task->recurrence_type);
+                                    
+                                    // Aggiungi dettaglio giorno se presente
+                                    $day_detail = '';
+                                    if (!empty($task->recurrence_day)) {
+                                        if ($task->recurrence_type === 'monthly') {
+                                            $day_detail = sprintf(__('(il %d)', 'fp-task-agenda'), $task->recurrence_day);
+                                        } elseif ($task->recurrence_type === 'weekly') {
+                                            $days_of_week = array(
+                                                0 => __('Dom', 'fp-task-agenda'),
+                                                1 => __('Lun', 'fp-task-agenda'),
+                                                2 => __('Mar', 'fp-task-agenda'),
+                                                3 => __('Mer', 'fp-task-agenda'),
+                                                4 => __('Gio', 'fp-task-agenda'),
+                                                5 => __('Ven', 'fp-task-agenda'),
+                                                6 => __('Sab', 'fp-task-agenda')
+                                            );
+                                            $day_detail = '(' . ($days_of_week[$task->recurrence_day] ?? '') . ')';
+                                        }
+                                    }
                                     ?>
-                                    <span class="fp-recurrence-badge" title="<?php echo esc_attr($recurrence_label); ?>">
+                                    <span class="fp-recurrence-badge" title="<?php echo esc_attr($recurrence_label . ' ' . $day_detail); ?>">
                                         <span class="dashicons dashicons-update"></span>
                                         <span class="fp-recurrence-text"><?php echo esc_html($recurrence_label); ?></span>
+                                        <?php if ($day_detail): ?>
+                                            <small class="fp-recurrence-day-info"><?php echo esc_html($day_detail); ?></small>
+                                        <?php endif; ?>
                                     </span>
                                 <?php else: ?>
                                     <span class="fp-no-recurrence">—</span>
@@ -516,7 +601,40 @@ if (!defined('ABSPATH')) {
                                 <option value="weekly"><?php echo esc_html__('Settimanale', 'fp-task-agenda'); ?></option>
                                 <option value="monthly"><?php echo esc_html__('Mensile', 'fp-task-agenda'); ?></option>
                             </select>
-                            <p class="description"><?php echo esc_html__('Il task verrà creato automaticamente in base alla ricorrenza selezionata', 'fp-task-agenda'); ?></p>
+                            <p class="description"><?php echo esc_html__('Il task verrà ricreato automaticamente quando viene completato', 'fp-task-agenda'); ?></p>
+                        </td>
+                    </tr>
+                    <tr id="fp-recurrence-day-row" style="display: none;">
+                        <th scope="row">
+                            <label for="fp-task-recurrence-day"><?php echo esc_html__('Giorno ricorrenza', 'fp-task-agenda'); ?></label>
+                        </th>
+                        <td>
+                            <!-- Select per ricorrenza mensile (giorno del mese 1-31) -->
+                            <select id="fp-task-recurrence-day-monthly" name="recurrence_day" class="fp-recurrence-day-select" style="display: none;">
+                                <option value=""><?php echo esc_html__('Stesso giorno della scadenza', 'fp-task-agenda'); ?></option>
+                                <?php for ($i = 1; $i <= 31; $i++): ?>
+                                    <option value="<?php echo $i; ?>"><?php echo sprintf(__('Il %d di ogni mese', 'fp-task-agenda'), $i); ?></option>
+                                <?php endfor; ?>
+                            </select>
+                            
+                            <!-- Select per ricorrenza settimanale (giorno della settimana 0-6) -->
+                            <select id="fp-task-recurrence-day-weekly" name="recurrence_day" class="fp-recurrence-day-select" style="display: none;">
+                                <option value=""><?php echo esc_html__('Stesso giorno della scadenza', 'fp-task-agenda'); ?></option>
+                                <option value="1"><?php echo esc_html__('Ogni Lunedì', 'fp-task-agenda'); ?></option>
+                                <option value="2"><?php echo esc_html__('Ogni Martedì', 'fp-task-agenda'); ?></option>
+                                <option value="3"><?php echo esc_html__('Ogni Mercoledì', 'fp-task-agenda'); ?></option>
+                                <option value="4"><?php echo esc_html__('Ogni Giovedì', 'fp-task-agenda'); ?></option>
+                                <option value="5"><?php echo esc_html__('Ogni Venerdì', 'fp-task-agenda'); ?></option>
+                                <option value="6"><?php echo esc_html__('Ogni Sabato', 'fp-task-agenda'); ?></option>
+                                <option value="0"><?php echo esc_html__('Ogni Domenica', 'fp-task-agenda'); ?></option>
+                            </select>
+                            
+                            <p class="description fp-recurrence-day-description" id="fp-recurrence-day-desc-monthly" style="display: none;">
+                                <?php echo esc_html__('Seleziona il giorno del mese in cui la ricorrenza si riattiva', 'fp-task-agenda'); ?>
+                            </p>
+                            <p class="description fp-recurrence-day-description" id="fp-recurrence-day-desc-weekly" style="display: none;">
+                                <?php echo esc_html__('Seleziona il giorno della settimana in cui la ricorrenza si riattiva', 'fp-task-agenda'); ?>
+                            </p>
                         </td>
                     </tr>
                 </table>

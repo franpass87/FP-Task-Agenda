@@ -123,4 +123,30 @@ class Task {
         
         return $days >= 0 && $days <= 3;
     }
+    
+    /**
+     * Verifica se un task è scaduto (data di scadenza nel passato)
+     */
+    public static function is_overdue($date_string) {
+        if (empty($date_string)) {
+            return false;
+        }
+        
+        $timestamp = strtotime($date_string);
+        if (!$timestamp) {
+            return false;
+        }
+        
+        // Estrai solo la data (senza ora) per il confronto
+        $due_date = date('Y-m-d', $timestamp);
+        $today = current_time('Y-m-d');
+        
+        // Calcola la differenza in giorni usando le date
+        $due_datetime = new \DateTime($due_date);
+        $today_datetime = new \DateTime($today);
+        $diff = $today_datetime->diff($due_datetime);
+        $days = (int) $diff->format('%r%a'); // %r per il segno, %a per i giorni assoluti
+        
+        return $days < 0; // Scaduto se la differenza è negativa
+    }
 }

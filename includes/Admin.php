@@ -54,6 +54,10 @@ class Admin {
         add_action('wp_ajax_fp_task_agenda_delete_template', array($this, 'ajax_delete_template'));
         add_action('wp_ajax_fp_task_agenda_get_template', array($this, 'ajax_get_template'));
         add_action('wp_ajax_fp_task_agenda_create_task_from_template', array($this, 'ajax_create_task_from_template'));
+        
+        // AJAX handlers per task archiviati
+        add_action('wp_ajax_fp_task_agenda_restore_task', array($this, 'ajax_restore_task'));
+        add_action('wp_ajax_fp_task_agenda_permanently_delete_task', array($this, 'ajax_permanently_delete_task'));
     }
     
     /**
@@ -94,6 +98,22 @@ class Admin {
             'read',
             'fp-task-agenda-templates',
             array($this, 'render_templates_page')
+        );
+        
+        // Conta task archiviati per il badge
+        $archived_count = Database::count_archived_tasks();
+        $archived_title = __('Archiviati', 'fp-task-agenda');
+        if ($archived_count > 0) {
+            $archived_title .= ' <span class="awaiting-mod">' . $archived_count . '</span>';
+        }
+        
+        add_submenu_page(
+            'fp-task-agenda',
+            __('Task Archiviati', 'fp-task-agenda'),
+            $archived_title,
+            'read',
+            'fp-task-agenda-archived',
+            array($this, 'render_archived_page')
         );
     }
     
@@ -296,18 +316,34 @@ class Admin {
         // Recurrence type
         $recurrence_type = null;
         $recurrence_interval = 1;
+        $recurrence_day = null;
         $next_recurrence_date = null;
         
         if (isset($_POST['recurrence_type'])) {
             $recurrence_type_raw = trim($_POST['recurrence_type']);
             if (!empty($recurrence_type_raw) && in_array($recurrence_type_raw, array('daily', 'weekly', 'monthly'))) {
                 $recurrence_type = $recurrence_type_raw;
+                
+                // Recurrence day - giorno specifico per mensile/settimanale
+                if (isset($_POST['recurrence_day']) && !empty($_POST['recurrence_day'])) {
+                    $recurrence_day = absint($_POST['recurrence_day']);
+                    // Valida in base al tipo di ricorrenza
+                    if ($recurrence_type === 'monthly') {
+                        $recurrence_day = max(1, min(31, $recurrence_day)); // 1-31
+                    } elseif ($recurrence_type === 'weekly') {
+                        $recurrence_day = max(0, min(6, $recurrence_day)); // 0-6 (0=domenica)
+                    } else {
+                        $recurrence_day = null; // Non applicabile per daily
+                    }
+                }
+                
                 // Calcola next_recurrence_date se c'è una ricorrenza e una due_date
                 if (!empty($due_date)) {
                     $next_recurrence_date = \FP\TaskAgenda\Plugin::calculate_next_recurrence_date_static(
                         $due_date,
                         $recurrence_type,
-                        $recurrence_interval
+                        $recurrence_interval,
+                        $recurrence_day
                     );
                 }
             }
@@ -321,6 +357,7 @@ class Admin {
             'client_id' => $client_id,
             'recurrence_type' => $recurrence_type,
             'recurrence_interval' => $recurrence_interval,
+            'recurrence_day' => $recurrence_day,
             'next_recurrence_date' => $next_recurrence_date
         ));
         
@@ -393,13 +430,30 @@ class Admin {
             $recurrence_type = trim($_POST['recurrence_type']);
             if (!empty($recurrence_type) && in_array($recurrence_type, array('daily', 'weekly', 'monthly'))) {
                 $data['recurrence_type'] = $recurrence_type;
+                
+                // Recurrence day - giorno specifico per mensile/settimanale
+                $recurrence_day = null;
+                if (isset($_POST['recurrence_day']) && !empty($_POST['recurrence_day'])) {
+                    $recurrence_day = absint($_POST['recurrence_day']);
+                    // Valida in base al tipo di ricorrenza
+                    if ($recurrence_type === 'monthly') {
+                        $recurrence_day = max(1, min(31, $recurrence_day)); // 1-31
+                    } elseif ($recurrence_type === 'weekly') {
+                        $recurrence_day = max(0, min(6, $recurrence_day)); // 0-6 (0=domenica)
+                    } else {
+                        $recurrence_day = null; // Non applicabile per daily
+                    }
+                }
+                $data['recurrence_day'] = $recurrence_day;
+                
                 // Calcola next_recurrence_date se c'è una ricorrenza
                 if (isset($_POST['due_date']) && !empty(trim($_POST['due_date']))) {
                     $due_date = sanitize_text_field($_POST['due_date']);
                     $data['next_recurrence_date'] = \FP\TaskAgenda\Plugin::calculate_next_recurrence_date_static(
                         $due_date,
                         $recurrence_type,
-                        1
+                        1,
+                        $recurrence_day
                     );
                 } else {
                     $data['next_recurrence_date'] = null;
@@ -407,6 +461,7 @@ class Admin {
             } else {
                 // Se recurrence_type è vuoto o non valido, rimuovi la ricorrenza
                 $data['recurrence_type'] = null;
+                $data['recurrence_day'] = null;
                 $data['next_recurrence_date'] = null;
             }
         }
@@ -484,6 +539,7 @@ class Admin {
         $priority = isset($_POST['priority']) ? sanitize_text_field($_POST['priority']) : 'all';
         $client_id = isset($_POST['client_id']) ? sanitize_text_field($_POST['client_id']) : 'all';
         $page = isset($_POST['page']) ? absint($_POST['page']) : 1;
+        $per_page = isset($_POST['per_page']) ? absint($_POST['per_page']) : 20;
         $search = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
         
         $args = array(
@@ -491,7 +547,7 @@ class Admin {
             'priority' => $priority,
             'client_id' => $client_id,
             'search' => $search,
-            'per_page' => 20,
+            'per_page' => $per_page,
             'page' => $page,
             'orderby' => 'created_at',
             'order' => 'DESC'
@@ -513,7 +569,7 @@ class Admin {
         wp_send_json_success(array(
             'tasks' => $tasks,
             'total' => $total,
-            'pages' => ceil($total / 20)
+            'pages' => ceil($total / $per_page)
         ));
     }
     
@@ -924,5 +980,65 @@ class Admin {
         $clients = Client::get_all();
         
         include FP_TASK_AGENDA_PLUGIN_DIR . 'includes/admin-templates/clients-page.php';
+    }
+    
+    /**
+     * Renderizza la pagina task archiviati
+     */
+    public function render_archived_page() {
+        $current_page = isset($_GET['paged']) ? absint($_GET['paged']) : 1;
+        $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
+        
+        $args = array(
+            'per_page' => 20,
+            'page' => $current_page,
+            'search' => $search
+        );
+        
+        $archived_tasks = Database::get_archived_tasks($args);
+        $total_archived = Database::count_archived_tasks($args);
+        $total_pages = ceil($total_archived / 20);
+        
+        include FP_TASK_AGENDA_PLUGIN_DIR . 'includes/admin-templates/archived-page.php';
+    }
+    
+    /**
+     * AJAX: Ripristina task archiviato
+     */
+    public function ajax_restore_task() {
+        check_ajax_referer('fp_task_agenda_nonce', 'nonce');
+        
+        $id = isset($_POST['id']) ? absint($_POST['id']) : 0;
+        if (!$id) {
+            wp_send_json_error(array('message' => __('ID task non valido', 'fp-task-agenda')));
+        }
+        
+        $result = Database::restore_task($id);
+        
+        if (is_wp_error($result)) {
+            wp_send_json_error(array('message' => $result->get_error_message()));
+        }
+        
+        wp_send_json_success(array('message' => __('Task ripristinato con successo', 'fp-task-agenda')));
+    }
+    
+    /**
+     * AJAX: Elimina definitivamente task archiviato
+     */
+    public function ajax_permanently_delete_task() {
+        check_ajax_referer('fp_task_agenda_nonce', 'nonce');
+        
+        $id = isset($_POST['id']) ? absint($_POST['id']) : 0;
+        if (!$id) {
+            wp_send_json_error(array('message' => __('ID task non valido', 'fp-task-agenda')));
+        }
+        
+        $result = Database::permanently_delete_task($id);
+        
+        if (is_wp_error($result)) {
+            wp_send_json_error(array('message' => $result->get_error_message()));
+        }
+        
+        wp_send_json_success(array('message' => __('Task eliminato definitivamente', 'fp-task-agenda')));
     }
 }
