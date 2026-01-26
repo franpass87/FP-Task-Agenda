@@ -706,17 +706,23 @@ class Database {
         $orderby_field = in_array($args['orderby'], $allowed_orderby) ? $args['orderby'] : 'created_at';
         $order_direction = strtoupper($args['order']) === 'ASC' ? 'ASC' : 'DESC';
         
-        // Per priorità, usa un CASE per ordinare logicamente invece che alfabeticamente
-        // Task scadute (overdue) vanno sempre in cima, poi in corso, poi pending, poi completati in fondo
+        // SEMPRE applica questo ordinamento come primo criterio:
+        // 1. Scaduti (overdue) = -1
+        // 2. In corso (in_progress) = 0
+        // 3. Da fare (pending) = 1
+        // 4. Completati (completed) = 2
+        $status_order = "CASE 
+            WHEN status != 'completed' AND due_date IS NOT NULL AND DATE(due_date) < CURDATE() THEN -1
+            WHEN status = 'in_progress' THEN 0
+            WHEN status = 'pending' THEN 1
+            WHEN status = 'completed' THEN 2
+            ELSE 1 
+        END ASC";
+        
+        // Poi applica l'ordinamento specifico richiesto
         if ($orderby_field === 'priority') {
             // Ordine logico: urgent=4, high=3, normal=2, low=1
-            // Task scadute (overdue) = -1 (prima di tutto), in_progress=0, pending=1, completed=2 (in fondo)
-            $orderby = "CASE 
-                WHEN status != 'completed' AND due_date IS NOT NULL AND DATE(due_date) < CURDATE() THEN -1
-                WHEN status = 'in_progress' THEN 0
-                WHEN status = 'completed' THEN 2
-                ELSE 1 
-            END ASC, CASE priority 
+            $orderby = $status_order . ", CASE priority 
                 WHEN 'urgent' THEN 4 
                 WHEN 'high' THEN 3 
                 WHEN 'normal' THEN 2 
@@ -724,64 +730,27 @@ class Database {
                 ELSE 0 
             END " . $order_direction;
         } elseif ($orderby_field === 'status') {
-            // Per status, ordine logico: scadute=-1 (prima), in_progress=0, pending=1, completed=2 (in fondo)
-            $orderby = "CASE 
-                WHEN status != 'completed' AND due_date IS NOT NULL AND DATE(due_date) < CURDATE() THEN -1
-                WHEN status = 'in_progress' THEN 0
-                WHEN status = 'pending' THEN 1 
-                WHEN status = 'completed' THEN 2 
-                ELSE 1 
-            END ASC";
+            // Per status, usa solo l'ordinamento logico (già definito in $status_order)
+            $orderby = $status_order;
         } elseif ($orderby_field === 'due_date') {
-            // Per due_date: task scadute in cima, poi in_progress, poi completed in fondo, poi ordina per data
-            // I NULL alla fine in ASC, all'inizio in DESC
+            // Per due_date: ordina per data scadenza, gestendo i NULL
             if ($order_direction === 'ASC') {
-                $orderby = "CASE 
-                    WHEN status != 'completed' AND due_date IS NOT NULL AND DATE(due_date) < CURDATE() THEN -1
-                    WHEN status = 'in_progress' THEN 0
-                    WHEN status = 'completed' THEN 2
-                    ELSE 1 
-                END ASC, CASE WHEN due_date IS NULL THEN 1 ELSE 0 END ASC, due_date ASC";
+                $orderby = $status_order . ", CASE WHEN due_date IS NULL THEN 1 ELSE 0 END ASC, due_date ASC";
             } else {
-                $orderby = "CASE 
-                    WHEN status != 'completed' AND due_date IS NOT NULL AND DATE(due_date) < CURDATE() THEN -1
-                    WHEN status = 'in_progress' THEN 0
-                    WHEN status = 'completed' THEN 2
-                    ELSE 1 
-                END ASC, CASE WHEN due_date IS NULL THEN 0 ELSE 1 END DESC, due_date DESC";
+                $orderby = $status_order . ", CASE WHEN due_date IS NULL THEN 0 ELSE 1 END DESC, due_date DESC";
             }
         } elseif ($orderby_field === 'created_at') {
-            // Task scadute=-1 (prima), in_progress=0, pending=1, completed=2 (in fondo), poi ordina per data creazione
-            $orderby = "CASE 
-                WHEN status != 'completed' AND due_date IS NOT NULL AND DATE(due_date) < CURDATE() THEN -1
-                WHEN status = 'in_progress' THEN 0
-                WHEN status = 'completed' THEN 2
-                ELSE 1 
-            END ASC, created_at " . $order_direction;
+            // Ordina per data creazione
+            $orderby = $status_order . ", created_at " . $order_direction;
         } elseif ($orderby_field === 'title') {
-            // Task scadute=-1 (prima), in_progress=0, pending=1, completed=2 (in fondo), poi ordina per titolo
-            $orderby = "CASE 
-                WHEN status != 'completed' AND due_date IS NOT NULL AND DATE(due_date) < CURDATE() THEN -1
-                WHEN status = 'in_progress' THEN 0
-                WHEN status = 'completed' THEN 2
-                ELSE 1 
-            END ASC, title " . $order_direction;
+            // Ordina per titolo
+            $orderby = $status_order . ", title " . $order_direction;
         } elseif ($orderby_field === 'client_id') {
-            // Task scadute=-1 (prima), in_progress=0, pending=1, completed=2 (in fondo), poi ordina per cliente
-            $orderby = "CASE 
-                WHEN status != 'completed' AND due_date IS NOT NULL AND DATE(due_date) < CURDATE() THEN -1
-                WHEN status = 'in_progress' THEN 0
-                WHEN status = 'completed' THEN 2
-                ELSE 1 
-            END ASC, client_id " . $order_direction;
+            // Ordina per cliente
+            $orderby = $status_order . ", client_id " . $order_direction;
         } else {
-            // Task scadute=-1 (prima), in_progress=0, pending=1, completed=2 (in fondo), poi ordina per campo specificato
-            $orderby = "CASE 
-                WHEN status != 'completed' AND due_date IS NOT NULL AND DATE(due_date) < CURDATE() THEN -1
-                WHEN status = 'in_progress' THEN 0
-                WHEN status = 'completed' THEN 2
-                ELSE 1 
-            END ASC, " . $orderby_field . ' ' . $order_direction;
+            // Ordina per campo specificato
+            $orderby = $status_order . ", " . $orderby_field . ' ' . $order_direction;
         }
         
         $offset = ($args['page'] - 1) * $args['per_page'];
