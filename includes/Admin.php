@@ -250,6 +250,9 @@ class Admin {
         $orderby = $args['orderby'];
         $order = $args['order'];
         
+        // Passa anche il conteggio dei task archiviati
+        $archived_count = Database::count_archived_tasks();
+        
         include FP_TASK_AGENDA_PLUGIN_DIR . 'includes/admin-templates/main-page.php';
     }
     

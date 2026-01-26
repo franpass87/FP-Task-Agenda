@@ -43,6 +43,22 @@ if (!defined('ABSPATH')) {
     
     <hr class="wp-header-end">
     
+    <!-- Avviso task archiviati -->
+    <?php 
+    $archived_count = isset($archived_count) ? $archived_count : \FP\TaskAgenda\Database::count_archived_tasks();
+    if ($archived_count > 0): 
+    ?>
+    <div class="notice notice-info" style="margin: 20px 0; padding: 15px; border-left: 4px solid #2271b1; background: #f0f6fc;">
+        <p style="margin: 0; display: flex; align-items: center; gap: 10px;">
+            <span class="dashicons dashicons-archive" style="color: #2271b1;"></span>
+            <strong><?php echo esc_html(sprintf(__('Hai %d task archiviati che possono essere ripristinati.', 'fp-task-agenda'), $archived_count)); ?></strong>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=fp-task-agenda-archived')); ?>" class="button button-primary" style="margin-left: auto;">
+                <?php echo esc_html__('Vedi Task Archiviati', 'fp-task-agenda'); ?>
+            </a>
+        </p>
+    </div>
+    <?php endif; ?>
+    
     <!-- Modal Seleziona Template -->
     <?php if (!empty($templates)): ?>
     <div id="fp-template-select-modal" class="fp-modal" style="display: none;">

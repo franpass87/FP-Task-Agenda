@@ -32,6 +32,9 @@ class Plugin {
         // Inizializza il database
         Database::get_instance();
         
+        // Verifica e aggiorna il database se necessario (all'avvio, non solo all'attivazione)
+        add_action('admin_init', array($this, 'maybe_update_database'), 1);
+        
         // Hook per cron job task ricorrenti
         add_action('fp_task_agenda_recurring_tasks', array($this, 'generate_recurring_tasks'));
         
@@ -41,6 +44,28 @@ class Plugin {
         // Carica admin solo se siamo nell'admin
         if (is_admin()) {
             Admin::get_instance();
+        }
+    }
+    
+    /**
+     * Verifica e aggiorna il database se necessario
+     * 
+     * Questo viene chiamato all'avvio del plugin per assicurarsi che
+     * il database sia sempre aggiornato senza perdere dati.
+     */
+    public function maybe_update_database() {
+        // Solo per amministratori
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+        
+        $current_db_version = get_option('fp_task_agenda_db_version', '0');
+        $required_db_version = Database::DB_VERSION;
+        
+        // Se la versione del database è inferiore a quella richiesta, aggiorna
+        if (version_compare($current_db_version, $required_db_version, '<')) {
+            // Esegui migrazione sicura (aggiunge solo colonne mancanti)
+            Database::create_tables();
         }
     }
     
@@ -225,7 +250,7 @@ class Plugin {
      * Attivazione plugin
      */
     public static function activate() {
-        // Crea le tabelle necessarie
+        // Crea le tabelle necessarie (ora con controllo versione - non cancella dati esistenti)
         Database::create_tables();
         
         // Crea opzioni di default se non esistono
@@ -236,6 +261,9 @@ class Plugin {
                 'auto_cleanup_days' => 30
             ));
         }
+        
+        // Salva la versione del plugin per riferimento
+        update_option('fp_task_agenda_version', FP_TASK_AGENDA_VERSION);
         
         // Schedula cron job per task ricorrenti (ogni giorno alle 2:00 AM)
         if (!wp_next_scheduled('fp_task_agenda_recurring_tasks')) {

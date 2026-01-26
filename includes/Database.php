@@ -27,10 +27,29 @@ class Database {
     }
     
     /**
+     * Versione corrente del database schema
+     */
+    const DB_VERSION = '1.0.0';
+    
+    /**
      * Crea le tabelle del plugin
+     * 
+     * IMPORTANTE: Questa funzione ora controlla la versione del database
+     * e non ricrea le tabelle se già esistono e sono aggiornate.
+     * Questo previene la perdita di dati durante gli aggiornamenti.
      */
     public static function create_tables() {
         global $wpdb;
+        
+        // Controlla la versione del database
+        $current_db_version = get_option('fp_task_agenda_db_version', '0');
+        
+        // Se la versione è già aggiornata, non fare nulla (previene perdite dati)
+        if (version_compare($current_db_version, self::DB_VERSION, '>=')) {
+            // Verifica solo che le colonne essenziali esistano (migrazione sicura)
+            self::maybe_add_missing_columns();
+            return;
+        }
         
         $charset_collate = $wpdb->get_charset_collate();
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
@@ -142,6 +161,67 @@ class Database {
         if (empty($deleted_at_check)) {
             $wpdb->query("ALTER TABLE $table_name ADD COLUMN deleted_at datetime NULL AFTER completed_at");
             $wpdb->query("ALTER TABLE $table_name ADD KEY deleted_at (deleted_at)");
+        }
+        
+        // Aggiorna la versione del database SOLO dopo che tutte le modifiche sono state applicate con successo
+        update_option('fp_task_agenda_db_version', self::DB_VERSION);
+    }
+    
+    /**
+     * Aggiunge colonne mancanti senza ricreare la tabella (migrazione sicura)
+     * 
+     * Questa funzione viene chiamata quando il database è già alla versione corrente
+     * ma potrebbe mancare qualche colonna aggiunta in versioni successive.
+     */
+    public static function maybe_add_missing_columns() {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'fp_task_agenda';
+        
+        // Verifica se la tabella esiste
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'");
+        if (!$table_exists) {
+            // Se la tabella non esiste, ricreala completamente
+            self::create_tables();
+            return;
+        }
+        
+        // Lista di tutte le colonne che dovrebbero esistere
+        $required_columns = array(
+            'client_id' => "ALTER TABLE $table_name ADD COLUMN client_id bigint(20) NULL AFTER due_date",
+            'recurrence_type' => "ALTER TABLE $table_name ADD COLUMN recurrence_type varchar(20) NULL AFTER client_id",
+            'recurrence_interval' => "ALTER TABLE $table_name ADD COLUMN recurrence_interval int(11) NULL DEFAULT 1 AFTER recurrence_type",
+            'recurrence_day' => "ALTER TABLE $table_name ADD COLUMN recurrence_day int(11) NULL AFTER recurrence_interval",
+            'recurrence_parent_id' => "ALTER TABLE $table_name ADD COLUMN recurrence_parent_id bigint(20) NULL AFTER recurrence_day",
+            'next_recurrence_date' => "ALTER TABLE $table_name ADD COLUMN next_recurrence_date datetime NULL AFTER recurrence_parent_id",
+            'deleted_at' => "ALTER TABLE $table_name ADD COLUMN deleted_at datetime NULL AFTER completed_at"
+        );
+        
+        // Verifica e aggiungi colonne mancanti
+        foreach ($required_columns as $column_name => $sql) {
+            $column_check = $wpdb->get_results($wpdb->prepare(
+                "SHOW COLUMNS FROM $table_name LIKE %s",
+                $column_name
+            ));
+            
+            if (empty($column_check)) {
+                // Aggiungi la colonna
+                $wpdb->query($sql);
+                
+                // Aggiungi indici se necessario
+                if ($column_name === 'client_id') {
+                    $wpdb->query("ALTER TABLE $table_name ADD KEY client_id (client_id)");
+                }
+                if ($column_name === 'recurrence_parent_id') {
+                    $wpdb->query("ALTER TABLE $table_name ADD KEY recurrence_parent_id (recurrence_parent_id)");
+                }
+                if ($column_name === 'next_recurrence_date') {
+                    $wpdb->query("ALTER TABLE $table_name ADD KEY next_recurrence_date (next_recurrence_date)");
+                }
+                if ($column_name === 'deleted_at') {
+                    $wpdb->query("ALTER TABLE $table_name ADD KEY deleted_at (deleted_at)");
+                }
+            }
         }
     }
     
