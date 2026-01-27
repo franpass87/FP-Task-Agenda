@@ -387,80 +387,61 @@ class PublisherIntegration {
             return false;
         }
         
-        $publisher_table = $wpdb->prefix . 'fp_pub_remote_sites';
-        $table_name_safe = esc_sql($publisher_table);
-        
-        // Trova la colonna "Ultimo Post Programmato" (ricerca flessibile)
-        $column_name = self::find_column_name($table_name_safe, array(
-            'ultimo_post_programmato',
-            'ultimo_post',
-            'last_post',
-            'last_post_scheduled',
-            'ultimo_post_social',
-            'last_social_post',
-            'last_post_date',
-            'ultima_pubblicazione',
-            'last_publication'
-        ));
-        
-        if (!$column_name) {
-            // Colonna non trovata - i dati potrebbero essere in un'altra tabella o calcolati dinamicamente
-            // Log dettagliato per debug
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('FP Task Agenda - Colonna "Ultimo Post Programmato" non trovata nella tabella FP Publisher');
-                error_log('FP Task Agenda - Workspace ID: ' . $workspace_id . ', Nome: ' . $workspace_name);
-                // Mostra tutte le colonne disponibili per debug
-                $all_columns = $wpdb->get_results("SHOW COLUMNS FROM {$table_name_safe}");
-                $column_list = array_map(function($col) { return $col->Field; }, $all_columns);
-                error_log('FP Task Agenda - Colonne disponibili: ' . implode(', ', $column_list));
-            }
-            // Non restituire false immediatamente - forse i dati sono altrove o calcolati dinamicamente
-            // Per ora restituiamo false, ma potremmo dover implementare un approccio diverso
-            return false;
-        }
-        
-        // Ottieni l'ultimo post programmato per questo workspace
-        // Usa esc_sql per sicurezza anche se la colonna è già validata
-        $column_name_safe = esc_sql($column_name);
-        
-        // Cerca anche colonne per stato/prossimo post/avanzamento
-        $status_column = self::find_column_name($table_name_safe, array(
-            'status', 'stato', 'ultimo_post_status', 'last_post_status'
-        ));
-        $next_post_column = self::find_column_name($table_name_safe, array(
-            'prossimo_post', 'next_post', 'prossimo_post_programmato', 'next_post_scheduled'
-        ));
-        $progress_column = self::find_column_name($table_name_safe, array(
-            'avanzamento', 'progress', 'monthly_progress'
-        ));
-        
-        // Costruisci query per ottenere tutte le colonne disponibili
-        $select_columns = array("id", "name", "`{$column_name_safe}`");
-        if ($status_column) {
-            $status_column_safe = esc_sql($status_column);
-            $select_columns[] = "`{$status_column_safe}`";
-        }
-        if ($next_post_column) {
-            $next_post_column_safe = esc_sql($next_post_column);
-            $select_columns[] = "`{$next_post_column_safe}`";
-        }
-        if ($progress_column) {
-            $progress_column_safe = esc_sql($progress_column);
-            $select_columns[] = "`{$progress_column_safe}`";
-        }
-        
+        // Ottieni TUTTE le colonne per vedere cosa c'è realmente
         $workspace = $wpdb->get_row($wpdb->prepare(
-            "SELECT " . implode(", ", $select_columns) . " FROM {$table_name_safe} WHERE id = %d",
+            "SELECT * FROM {$table_name_safe} WHERE id = %d",
             absint($workspace_id)
         ));
         
-        // Verifica se il workspace esiste e ha un valore per la colonna
         if (!$workspace) {
             return false;
         }
         
-        // Accedi alla colonna dinamicamente usando il nome trovato
-        $column_value = isset($workspace->$column_name) ? $workspace->$column_name : null;
+        // Mostra tutte le colonne disponibili per debug
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            $all_columns = $wpdb->get_results("SHOW COLUMNS FROM {$table_name_safe}");
+            $column_list = array_map(function($col) { return $col->Field; }, $all_columns);
+            error_log('FP Task Agenda - Tutte le colonne disponibili: ' . implode(', ', $column_list));
+            error_log('FP Task Agenda - Workspace data: ' . print_r($workspace, true));
+        }
+        
+        // Cerca colonna ultimo post - prova vari nomi possibili
+        $column_name = null;
+        $possible_names = array(
+            'ultimo_post_programmato', 'ultimo_post', 'last_post', 'last_post_scheduled',
+            'ultimo_post_social', 'last_social_post', 'last_post_date', 'ultima_pubblicazione',
+            'last_publication', 'last_post_programmato', 'ultimo_post_pubblicato'
+        );
+        
+        foreach ($possible_names as $name) {
+            if (isset($workspace->$name) && !empty($workspace->$name)) {
+                $column_name = $name;
+                break;
+            }
+        }
+        
+        // Se non trovata, cerca case-insensitive
+        if (!$column_name) {
+            foreach (get_object_vars($workspace) as $key => $value) {
+                $key_lower = strtolower($key);
+                foreach ($possible_names as $name) {
+                    if (strtolower($name) === $key_lower && !empty($value)) {
+                        $column_name = $key;
+                        break 2;
+                    }
+                }
+            }
+        }
+        
+        if (!$column_name) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('FP Task Agenda - Colonna "Ultimo Post Programmato" non trovata. Colonne disponibili: ' . implode(', ', array_keys(get_object_vars($workspace))));
+            }
+            return false;
+        }
+        
+        $column_value = $workspace->$column_name;
+        
         
         // Verifica se c'è uno stato "Attenzione" o "Urgente" o problemi
         // Cerca in: colonna status, valore ultimo post programmato, e colonna avanzamento
@@ -667,52 +648,9 @@ class PublisherIntegration {
         $publisher_table = $wpdb->prefix . 'fp_pub_remote_sites';
         $table_name_safe = esc_sql($publisher_table);
         
-        // Trova la colonna "Avanzamento" (ricerca flessibile)
-        $column_name = self::find_column_name($table_name_safe, array(
-            'avanzamento',
-            'progress',
-            'monthly_progress',
-            'articoli_mensili',
-            'monthly_articles',
-            'wp_progress',
-            'article_progress',
-            'articoli_progress'
-        ));
-        
-        if (!$column_name) {
-            // Colonna non trovata - i dati potrebbero essere in un'altra tabella o calcolati dinamicamente
-            // Log dettagliato per debug
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('FP Task Agenda - Colonna "Avanzamento" non trovata nella tabella FP Publisher');
-                error_log('FP Task Agenda - Workspace ID: ' . $workspace_id . ', Nome: ' . $workspace_name);
-                // Mostra tutte le colonne disponibili per debug
-                $all_columns = $wpdb->get_results("SHOW COLUMNS FROM {$table_name_safe}");
-                $column_list = array_map(function($col) { return $col->Field; }, $all_columns);
-                error_log('FP Task Agenda - Colonne disponibili: ' . implode(', ', $column_list));
-            }
-            // Non restituire false immediatamente - forse i dati sono altrove o calcolati dinamicamente
-            // Per ora restituiamo false, ma potremmo dover implementare un approccio diverso
-            return false;
-        }
-        
-        // Ottieni l'avanzamento per questo workspace
-        // Usa esc_sql per sicurezza anche se la colonna è già validata
-        $column_name_safe = esc_sql($column_name);
-        
-        // Cerca anche colonna per stato "Attenzione" (potrebbe essere la stessa colonna status dei post social)
-        $status_column = self::find_column_name($table_name_safe, array(
-            'status', 'stato', 'ultimo_post_status', 'last_post_status', 'avanzamento_status'
-        ));
-        
-        // Costruisci query per ottenere tutte le colonne disponibili
-        $select_columns = array("id", "name", "`{$column_name_safe}`");
-        if ($status_column && $status_column !== $column_name) {
-            $status_column_safe = esc_sql($status_column);
-            $select_columns[] = "`{$status_column_safe}`";
-        }
-        
+        // Ottieni TUTTE le colonne per vedere cosa c'è realmente
         $workspace = $wpdb->get_row($wpdb->prepare(
-            "SELECT " . implode(", ", $select_columns) . " FROM {$table_name_safe} WHERE id = %d",
+            "SELECT * FROM {$table_name_safe} WHERE id = %d",
             absint($workspace_id)
         ));
         
@@ -720,8 +658,59 @@ class PublisherIntegration {
             return false;
         }
         
-        // Accedi alla colonna dinamicamente usando il nome trovato
-        $avanzamento = isset($workspace->$column_name) ? $workspace->$column_name : null;
+        // Mostra tutte le colonne disponibili per debug
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            $all_columns = $wpdb->get_results("SHOW COLUMNS FROM {$table_name_safe}");
+            $column_list = array_map(function($col) { return $col->Field; }, $all_columns);
+            error_log('FP Task Agenda - Tutte le colonne disponibili (WordPress): ' . implode(', ', $column_list));
+            error_log('FP Task Agenda - Workspace data keys (WordPress): ' . implode(', ', array_keys(get_object_vars($workspace))));
+        }
+        
+        // Cerca colonna avanzamento - prova vari nomi possibili direttamente nell'oggetto
+        $column_name = null;
+        $possible_names = array(
+            'avanzamento', 'progress', 'monthly_progress', 'articoli_mensili',
+            'monthly_articles', 'wp_progress', 'article_progress', 'articoli_progress'
+        );
+        
+        foreach ($possible_names as $name) {
+            if (isset($workspace->$name) && !empty($workspace->$name)) {
+                $column_name = $name;
+                break;
+            }
+        }
+        
+        // Se non trovata, cerca case-insensitive nell'oggetto workspace
+        if (!$column_name) {
+            foreach (get_object_vars($workspace) as $key => $value) {
+                $key_lower = strtolower($key);
+                foreach ($possible_names as $name) {
+                    if (strtolower($name) === $key_lower && !empty($value)) {
+                        $column_name = $key;
+                        break 2;
+                    }
+                }
+            }
+        }
+        
+        if (!$column_name) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('FP Task Agenda - Colonna "Avanzamento" non trovata. Colonne disponibili: ' . implode(', ', array_keys(get_object_vars($workspace))));
+            }
+            return false;
+        }
+        
+        $avanzamento = $workspace->$column_name;
+        
+        // Cerca anche colonna per stato "Attenzione" direttamente nell'oggetto
+        $status_column = null;
+        
+        foreach (get_object_vars($workspace) as $key => $value) {
+            $key_lower = strtolower($key);
+            if (!$status_column && (strpos($key_lower, 'status') !== false || strpos($key_lower, 'stato') !== false)) {
+                $status_column = $key;
+            }
+        }
         
         // Verifica se c'è uno stato "Attenzione" o "Urgente" per WordPress
         // Cerca in: colonna status e valore avanzamento
