@@ -428,7 +428,7 @@ class PublisherIntegration {
         // Accedi alla colonna dinamicamente usando il nome trovato
         $column_value = isset($workspace->$column_name) ? $workspace->$column_name : null;
         
-        // Verifica se c'è uno stato "Attenzione" o problemi
+        // Verifica se c'è uno stato "Attenzione" o "Urgente" o problemi
         // Cerca in: colonna status, valore ultimo post programmato, e colonna avanzamento
         $has_attention = false;
         
@@ -437,38 +437,44 @@ class PublisherIntegration {
             $status_value = strtolower($workspace->$status_column);
             if (strpos($status_value, 'attenzione') !== false || 
                 strpos($status_value, 'attention') !== false ||
+                strpos($status_value, 'urgente') !== false ||
+                strpos($status_value, 'urgent') !== false ||
                 strpos($status_value, 'warning') !== false ||
                 strpos($status_value, 'problema') !== false) {
                 $has_attention = true;
                 if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log("FP Task Agenda - check_social_posts: Stato 'Attenzione' trovato in colonna status per {$workspace_name}");
+                    error_log("FP Task Agenda - check_social_posts: Stato 'Attenzione/Urgente' trovato in colonna status per {$workspace_name}");
                 }
             }
         }
         
-        // 2. Verifica anche nel valore dell'ultimo post programmato (potrebbe contenere HTML con "Attenzione")
+        // 2. Verifica anche nel valore dell'ultimo post programmato (potrebbe contenere HTML con "Attenzione" o "Urgente")
         if (!$has_attention && !empty($column_value)) {
             $column_value_str = strip_tags((string) $column_value); // Rimuovi HTML
             $column_value_lower = strtolower($column_value_str);
             if (strpos($column_value_lower, 'attenzione') !== false || 
                 strpos($column_value_lower, 'attention') !== false ||
+                strpos($column_value_lower, 'urgente') !== false ||
+                strpos($column_value_lower, 'urgent') !== false ||
                 strpos($column_value_lower, 'warning') !== false) {
                 $has_attention = true;
                 if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log("FP Task Agenda - check_social_posts: Stato 'Attenzione' trovato nel valore ultimo post programmato per {$workspace_name}");
+                    error_log("FP Task Agenda - check_social_posts: Stato 'Attenzione/Urgente' trovato nel valore ultimo post programmato per {$workspace_name}");
                 }
             }
         }
         
-        // 3. Verifica anche nella colonna avanzamento (potrebbe contenere info sull'attenzione)
+        // 3. Verifica anche nella colonna avanzamento (potrebbe contenere info sull'attenzione/urgenza)
         if (!$has_attention && $progress_column && isset($workspace->$progress_column)) {
             $progress_value_str = strip_tags((string) $workspace->$progress_column);
             $progress_value_lower = strtolower($progress_value_str);
             if (strpos($progress_value_lower, 'attenzione') !== false || 
-                strpos($progress_value_lower, 'attention') !== false) {
+                strpos($progress_value_lower, 'attention') !== false ||
+                strpos($progress_value_lower, 'urgente') !== false ||
+                strpos($progress_value_lower, 'urgent') !== false) {
                 $has_attention = true;
                 if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log("FP Task Agenda - check_social_posts: Stato 'Attenzione' trovato in colonna avanzamento per {$workspace_name}");
+                    error_log("FP Task Agenda - check_social_posts: Stato 'Attenzione/Urgente' trovato in colonna avanzamento per {$workspace_name}");
                 }
             }
         }
@@ -540,16 +546,16 @@ class PublisherIntegration {
             error_log("FP Task Agenda - check_social_posts: Giorni trascorsi: {$days_ago}, Soglia: {$days_threshold}");
         }
         
-        // Crea task SOLO se c'è stato "Attenzione"
-        // Il sistema FP Publisher gestisce già la logica per determinare quando impostare "Attenzione"
+        // Crea task SOLO se c'è stato "Attenzione" o "Urgente"
+        // Il sistema FP Publisher gestisce già la logica per determinare quando impostare "Attenzione/Urgente"
         // (post vecchi, progressi 0/1, ecc.) quindi usiamo solo quello come criterio
         $should_create_task = false;
         $task_description = '';
-        $task_title = __('Post Social - Attenzione', 'fp-task-agenda');
+        $task_title = __('Post Social - Attenzione/Urgente', 'fp-task-agenda');
         
         if ($has_attention) {
             $should_create_task = true;
-            $task_description = __('Stato "Attenzione" rilevato per l\'ultimo post programmato. Verifica necessaria.', 'fp-task-agenda');
+            $task_description = __('Stato "Attenzione/Urgente" rilevato per l\'ultimo post programmato. Verifica necessaria.', 'fp-task-agenda');
             
             // Aggiungi informazioni aggiuntive se disponibili (solo per contesto, non come trigger)
             $additional_info = array();
@@ -575,12 +581,12 @@ class PublisherIntegration {
             }
             
             if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log("FP Task Agenda - check_social_posts: Stato 'Attenzione' rilevato per {$workspace_name}");
+                error_log("FP Task Agenda - check_social_posts: Stato 'Attenzione/Urgente' rilevato per {$workspace_name}");
             }
         } else {
-            // Nessuna attenzione, non creare task
+            // Nessuna attenzione/urgenza, non creare task
             if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log("FP Task Agenda - check_social_posts: Nessuno stato 'Attenzione' per {$workspace_name}, nessuna task necessaria");
+                error_log("FP Task Agenda - check_social_posts: Nessuno stato 'Attenzione/Urgente' per {$workspace_name}, nessuna task necessaria");
             }
         }
         
@@ -675,7 +681,7 @@ class PublisherIntegration {
         // Accedi alla colonna dinamicamente usando il nome trovato
         $avanzamento = isset($workspace->$column_name) ? $workspace->$column_name : null;
         
-        // Verifica se c'è uno stato "Attenzione" per WordPress
+        // Verifica se c'è uno stato "Attenzione" o "Urgente" per WordPress
         // Cerca in: colonna status e valore avanzamento
         $has_attention = false;
         
@@ -684,25 +690,29 @@ class PublisherIntegration {
             $status_value = strtolower($workspace->$status_column);
             if (strpos($status_value, 'attenzione') !== false || 
                 strpos($status_value, 'attention') !== false ||
+                strpos($status_value, 'urgente') !== false ||
+                strpos($status_value, 'urgent') !== false ||
                 strpos($status_value, 'warning') !== false ||
                 strpos($status_value, 'problema') !== false) {
                 $has_attention = true;
                 if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log("FP Task Agenda - check_wordpress_posts: Stato 'Attenzione' trovato in colonna status per {$workspace_name}");
+                    error_log("FP Task Agenda - check_wordpress_posts: Stato 'Attenzione/Urgente' trovato in colonna status per {$workspace_name}");
                 }
             }
         }
         
-        // 2. Verifica anche nel valore avanzamento (potrebbe contenere HTML con "Attenzione")
+        // 2. Verifica anche nel valore avanzamento (potrebbe contenere HTML con "Attenzione" o "Urgente")
         if (!$has_attention && !empty($avanzamento)) {
             $avanzamento_str_clean = strip_tags((string) $avanzamento); // Rimuovi HTML
             $avanzamento_lower = strtolower($avanzamento_str_clean);
             if (strpos($avanzamento_lower, 'attenzione') !== false || 
                 strpos($avanzamento_lower, 'attention') !== false ||
+                strpos($avanzamento_lower, 'urgente') !== false ||
+                strpos($avanzamento_lower, 'urgent') !== false ||
                 strpos($avanzamento_lower, 'warning') !== false) {
                 $has_attention = true;
                 if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log("FP Task Agenda - check_wordpress_posts: Stato 'Attenzione' trovato nel valore avanzamento per {$workspace_name}");
+                    error_log("FP Task Agenda - check_wordpress_posts: Stato 'Attenzione/Urgente' trovato nel valore avanzamento per {$workspace_name}");
                 }
             }
         }
@@ -807,21 +817,21 @@ class PublisherIntegration {
         }
         
         // Crea task SOLO se:
-        // 1. C'è stato "Attenzione" OPPURE
+        // 1. C'è stato "Attenzione" o "Urgente" OPPURE
         // 2. L'avanzamento è "0/1" (0 articoli su 1 previsto) - caso specifico per WordPress
         // NON creare task per avanzamento vuoto/null o "piano non configurato"
         $should_create_task = false;
         
         if ($has_attention) {
-            // Se c'è stato "Attenzione", crea sempre task
+            // Se c'è stato "Attenzione" o "Urgente", crea sempre task
             $should_create_task = true;
             if (empty($description)) {
-                $description = __('Stato "Attenzione" rilevato per gli articoli WordPress. Verifica necessaria.', 'fp-task-agenda');
+                $description = __('Stato "Attenzione/Urgente" rilevato per gli articoli WordPress. Verifica necessaria.', 'fp-task-agenda');
             } else {
-                $description = __('Stato "Attenzione" rilevato. ', 'fp-task-agenda') . $description;
+                $description = __('Stato "Attenzione/Urgente" rilevato. ', 'fp-task-agenda') . $description;
             }
             if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log("FP Task Agenda - check_wordpress_posts: Stato 'Attenzione' rilevato per {$workspace_name}");
+                error_log("FP Task Agenda - check_wordpress_posts: Stato 'Attenzione/Urgente' rilevato per {$workspace_name}");
             }
         } elseif ($needs_article) {
             // Rimuovi HTML e normalizza spazi
