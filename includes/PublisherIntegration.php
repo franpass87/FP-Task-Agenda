@@ -742,8 +742,10 @@ class PublisherIntegration {
             }
         }
         
-        // Crea task SOLO se c'è stato "Attenzione" OPPURE se l'avanzamento indica chiaramente un problema critico
-        // (avanzamento vuoto/null o pattern espliciti di mancanza)
+        // Crea task se:
+        // 1. C'è stato "Attenzione" OPPURE
+        // 2. L'avanzamento è "0/1" (0 articoli su 1 previsto) - caso specifico per WordPress
+        // 3. Casi critici (avanzamento vuoto/null o pattern espliciti)
         $should_create_task = false;
         
         if ($has_attention) {
@@ -758,41 +760,58 @@ class PublisherIntegration {
                 error_log("FP Task Agenda - check_wordpress_posts: Stato 'Attenzione' rilevato per {$workspace_name}");
             }
         } elseif ($needs_article) {
-            // Se non c'è "Attenzione" ma l'avanzamento indica problemi, crea task solo se è un caso critico
-            // (avanzamento vuoto/null o pattern espliciti come "0/", "nessun", ecc.)
             $avanzamento_str = (string) $avanzamento;
             $avanzamento_lower = strtolower($avanzamento_str);
             
-            // Casi critici che giustificano una task anche senza "Attenzione" esplicita
-            $critical_patterns = array(
-                'nessun',
-                'no article',
-                'mancante',
-                'missing',
-                'piano non configurato'
-            );
-            
-            $is_critical = false;
-            foreach ($critical_patterns as $pattern) {
-                if (strpos($avanzamento_lower, $pattern) !== false) {
-                    $is_critical = true;
-                    break;
-                }
+            // Caso specifico: "0/1" o "Art. 0/1" - crea sempre task per WordPress
+            $is_zero_of_one = false;
+            if (preg_match('/Art\.?\s*0\s*\/\s*1/i', $avanzamento_str, $matches)) {
+                $is_zero_of_one = true;
+            } elseif (preg_match('/^0\s*\/\s*1$/i', $avanzamento_str, $matches)) {
+                $is_zero_of_one = true;
             }
             
-            // Anche avanzamento vuoto/null è critico
-            if (empty($avanzamento) && $avanzamento !== '0' && $avanzamento !== 0) {
-                $is_critical = true;
-            }
-            
-            if ($is_critical) {
+            if ($is_zero_of_one) {
+                // Caso specifico: 0/1 - crea sempre task
                 $should_create_task = true;
+                if (empty($description)) {
+                    $description = __('Avanzamento articoli WordPress: 0/1. È necessario pubblicare l\'articolo previsto per il mese corrente.', 'fp-task-agenda');
+                }
                 if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log("FP Task Agenda - check_wordpress_posts: Caso critico rilevato per {$workspace_name}, creazione task");
+                    error_log("FP Task Agenda - check_wordpress_posts: Avanzamento 0/1 rilevato per {$workspace_name}, creazione task");
                 }
             } else {
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log("FP Task Agenda - check_wordpress_posts: Avanzamento insufficiente ma nessuno stato 'Attenzione' per {$workspace_name}, nessuna task necessaria");
+                // Altri casi critici che giustificano una task anche senza "Attenzione" esplicita
+                $critical_patterns = array(
+                    'nessun',
+                    'no article',
+                    'mancante',
+                    'missing',
+                    'piano non configurato'
+                );
+                
+                $is_critical = false;
+                foreach ($critical_patterns as $pattern) {
+                    if (strpos($avanzamento_lower, $pattern) !== false) {
+                        $is_critical = true;
+                        break;
+                    }
+                }
+                
+                // Anche avanzamento vuoto/null è critico
+                if (empty($avanzamento) && $avanzamento !== '0' && $avanzamento !== 0) {
+                    $is_critical = true;
+                }
+                
+                if ($is_critical) {
+                    $should_create_task = true;
+                    if (defined('WP_DEBUG') && WP_DEBUG) {
+                        error_log("FP Task Agenda - check_wordpress_posts: Caso critico rilevato per {$workspace_name}, creazione task");
+                    }
+                } else {
+                    if (defined('WP_DEBUG') && WP_DEBUG) {
+                        error_log("FP Task Agenda - check_wordpress_posts: Avanzamento insufficiente ma nessuno stato 'Attenzione' per {$workspace_name}, nessuna task necessaria");
+                    }
                 }
             }
         }
