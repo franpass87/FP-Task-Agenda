@@ -61,10 +61,17 @@ class PublisherIntegration {
         $publisher_table = $wpdb->prefix . 'fp_pub_remote_sites';
         $table_name_safe = esc_sql($publisher_table);
         
-        // Ottieni tutti i remote sites
+        // Ottieni tutti i remote sites - usa client_name invece di name
         $workspaces = $wpdb->get_results(
-            "SELECT id, name FROM {$table_name_safe} WHERE name IS NOT NULL AND name != ''"
+            "SELECT id, client_name as name FROM {$table_name_safe} WHERE client_name IS NOT NULL AND client_name != ''"
         );
+        
+        // Se non trova nulla con client_name, prova con name
+        if (empty($workspaces)) {
+            $workspaces = $wpdb->get_results(
+                "SELECT id, name FROM {$table_name_safe} WHERE name IS NOT NULL AND name != ''"
+            );
+        }
         
         // Se non trova nulla, prova a vedere quali colonne esistono
         if (empty($workspaces)) {
@@ -77,7 +84,7 @@ class PublisherIntegration {
                 }
             }
             
-            if ($name_column && $name_column !== 'name') {
+            if ($name_column) {
                 $name_column_safe = esc_sql($name_column);
                 $workspaces = $wpdb->get_results(
                     "SELECT id, `{$name_column_safe}` as name FROM {$table_name_safe} WHERE `{$name_column_safe}` IS NOT NULL AND `{$name_column_safe}` != ''"
