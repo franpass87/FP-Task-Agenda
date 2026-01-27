@@ -38,6 +38,13 @@ if (!defined('ABSPATH')) {
                 <span class="dashicons dashicons-media-document"></span>
                 <?php echo esc_html__('Crea da Template', 'fp-task-agenda'); ?>
             </button>
+            
+            <?php if (class_exists('\FP\TaskAgenda\PublisherIntegration')): ?>
+            <button type="button" class="fp-btn fp-btn-secondary" id="fp-check-publisher-posts-btn" title="<?php echo esc_attr__('Verifica post mancanti in FP Publisher e crea task automaticamente', 'fp-task-agenda'); ?>">
+                <span class="dashicons dashicons-update"></span>
+                <?php echo esc_html__('Verifica Post FP Publisher', 'fp-task-agenda'); ?>
+            </button>
+            <?php endif; ?>
         </div>
     </div>
     

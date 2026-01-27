@@ -47,6 +47,9 @@ class Admin {
         add_action('wp_ajax_fp_task_agenda_delete_client', array($this, 'ajax_delete_client'));
         add_action('wp_ajax_fp_task_agenda_sync_clients', array($this, 'ajax_sync_clients'));
         
+        // AJAX handler per verifica post mancanti FP Publisher
+        add_action('wp_ajax_fp_task_agenda_check_publisher_posts', array($this, 'ajax_check_publisher_posts'));
+        
         // AJAX handlers per template
         add_action('wp_ajax_fp_task_agenda_get_templates', array($this, 'ajax_get_templates'));
         add_action('wp_ajax_fp_task_agenda_add_template', array($this, 'ajax_add_template'));
@@ -685,6 +688,25 @@ class Admin {
         
         if (!$result['success']) {
             wp_send_json_error(array('message' => $result['message']));
+        }
+        
+        wp_send_json_success($result);
+    }
+    
+    /**
+     * AJAX: Verifica post mancanti in FP Publisher e crea task
+     */
+    public function ajax_check_publisher_posts() {
+        check_ajax_referer('fp_task_agenda_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Permessi insufficienti', 'fp-task-agenda')));
+        }
+        
+        $result = PublisherIntegration::check_missing_posts();
+        
+        if (!$result['success']) {
+            wp_send_json_error(array('message' => $result['message'], 'tasks_created' => $result['tasks_created']));
         }
         
         wp_send_json_success($result);

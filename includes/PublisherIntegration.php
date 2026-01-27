@@ -243,16 +243,17 @@ class PublisherIntegration {
             return false;
         }
         
-        // Verifica se esiste già una task simile (solo per task non ricorrenti)
-        // Per task ricorrenti, il sistema gestisce automaticamente la rigenerazione
-        if (empty($recurrence_opts) && self::task_exists($client_id, $task_type)) {
+        // Verifica se esiste già una task simile ATTIVA (pending/in_progress)
+        // Se la task è completata, possiamo crearne una nuova se necessario
+        if (self::task_exists($client_id, $task_type)) {
             if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log("FP Task Agenda - Task già esistente per cliente {$client_id}, tipo: {$task_type}");
+                error_log("FP Task Agenda - Task già esistente (pending/in_progress) per cliente {$client_id}, tipo: {$task_type}");
             }
-            return false; // Task già esistente, non creare duplicato
+            return false; // Task già esistente e attiva, non creare duplicato
         }
         
-        // Per task ricorrenti, verifica se esiste una task ricorrente attiva
+        // Per task ricorrenti, verifica anche se esiste una task ricorrente attiva
+        // Se esiste una task ricorrente completata, il sistema la rigenererà automaticamente
         if (!empty($recurrence_opts)) {
             global $wpdb;
             $table_name = Database::get_table_name();
@@ -270,9 +271,35 @@ class PublisherIntegration {
             
             if ($existing_recurring) {
                 if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log("FP Task Agenda - Task ricorrente già esistente per cliente {$client_id}, tipo: {$task_type}");
+                    error_log("FP Task Agenda - Task ricorrente già esistente (pending/in_progress) per cliente {$client_id}, tipo: {$task_type}");
                 }
-                return false; // Task ricorrente già esistente
+                return false; // Task ricorrente già esistente e attiva
+            }
+            
+            // Se esiste una task ricorrente completata, verifica se deve essere rigenerata
+            // (questo viene gestito dal cron job, ma possiamo comunque creare una nuova se necessario)
+            $completed_recurring = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM $table_name 
+                WHERE client_id = %d 
+                AND status = 'completed'
+                AND title LIKE %s
+                AND recurrence_type = %s
+                AND deleted_at IS NULL
+                AND (next_recurrence_date IS NULL OR next_recurrence_date <= %s)
+                ORDER BY completed_at DESC
+                LIMIT 1",
+                absint($client_id),
+                '%' . $wpdb->esc_like($task_type) . '%',
+                $recurrence_opts['type'],
+                current_time('mysql')
+            ));
+            
+            if ($completed_recurring) {
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log("FP Task Agenda - Task ricorrente completata trovata per cliente {$client_id}, tipo: {$task_type}. Verrà rigenerata dal cron job.");
+                }
+                // Non creiamo una nuova task, il cron job la rigenererà automaticamente
+                return false;
             }
         }
         
@@ -393,13 +420,17 @@ class PublisherIntegration {
         $last_post_date = $column_value;
         $days_threshold = get_option('fp_task_agenda_social_days_threshold', 7);
         
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log("FP Task Agenda - check_social_posts: Workspace {$workspace_name} (ID: {$workspace_id}), Ultimo post: {$last_post_date}, Soglia: {$days_threshold} giorni");
+        }
+        
         // Converti la data in timestamp
         $last_post_timestamp = strtotime($last_post_date);
         if (!$last_post_timestamp) {
             // Se non riesce a convertire la data, potrebbe essere un formato non standard
             // Prova a loggare per debug
             if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('FP Task Agenda - Impossibile convertire data ultimo post: ' . $last_post_date);
+                error_log('FP Task Agenda - Impossibile convertire data ultimo post: ' . $last_post_date . ' per workspace ' . $workspace_name);
             }
             return false;
         }
@@ -411,12 +442,20 @@ class PublisherIntegration {
             $days_ago = 0;
         }
         
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log("FP Task Agenda - check_social_posts: Giorni trascorsi: {$days_ago}, Soglia: {$days_threshold}");
+        }
+        
         if ($days_ago >= $days_threshold) {
             // L'ultimo post è troppo vecchio, crea task
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log("FP Task Agenda - check_social_posts: Post troppo vecchio ({$days_ago} giorni), creazione task per {$workspace_name}");
+            }
+            
             $client_id = self::get_or_create_client($workspace_id, $workspace_name);
             
             if ($client_id) {
-                return self::create_task_for_client(
+                $result = self::create_task_for_client(
                     $client_id,
                     __('Post Social Mancanti', 'fp-task-agenda'),
                     $workspace_name,
@@ -426,6 +465,20 @@ class PublisherIntegration {
                         $days_threshold
                     )
                 );
+                
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log("FP Task Agenda - check_social_posts: Risultato creazione task: " . ($result ? "OK (ID: {$result})" : "FALLITA"));
+                }
+                
+                return $result;
+            } else {
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log("FP Task Agenda - check_social_posts: Impossibile ottenere/creare cliente per workspace {$workspace_name}");
+                }
+            }
+        } else {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log("FP Task Agenda - check_social_posts: Post ancora recente ({$days_ago} giorni < {$days_threshold}), nessuna task necessaria");
             }
         }
         
@@ -480,10 +533,18 @@ class PublisherIntegration {
         // Accedi alla colonna dinamicamente usando il nome trovato
         $avanzamento = isset($workspace->$column_name) ? $workspace->$column_name : null;
         
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log("FP Task Agenda - check_wordpress_posts: Workspace {$workspace_name} (ID: {$workspace_id}), Avanzamento: " . var_export($avanzamento, true));
+        }
+        
         // Se l'avanzamento è null o vuoto, considera che mancano articoli
         if (empty($avanzamento) && $avanzamento !== '0' && $avanzamento !== 0) {
             $needs_article = true;
             $description = __('Nessun dato di avanzamento disponibile. Verifica gli articoli WordPress per questo mese.', 'fp-task-agenda');
+            
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log("FP Task Agenda - check_wordpress_posts: Avanzamento vuoto/null, creazione task per {$workspace_name}");
+            }
         } else {
             // Interpreta l'avanzamento
             // Potrebbe essere un numero (es. 2/4 articoli), una percentuale, o un testo
@@ -554,11 +615,15 @@ class PublisherIntegration {
         }
         
         if ($needs_article) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log("FP Task Agenda - check_wordpress_posts: Articoli mancanti rilevati per {$workspace_name}, creazione task ricorrente mensile");
+            }
+            
             $client_id = self::get_or_create_client($workspace_id, $workspace_name);
             
             if ($client_id) {
                 // Crea task ricorrente mensile per articoli blog
-                return self::create_task_for_client(
+                $result = self::create_task_for_client(
                     $client_id,
                     __('Articolo WordPress Mancante', 'fp-task-agenda'),
                     $workspace_name,
@@ -569,6 +634,20 @@ class PublisherIntegration {
                         'day' => null // Fine mese automatico
                     )
                 );
+                
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log("FP Task Agenda - check_wordpress_posts: Risultato creazione task: " . ($result ? "OK (ID: {$result})" : "FALLITA"));
+                }
+                
+                return $result;
+            } else {
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log("FP Task Agenda - check_wordpress_posts: Impossibile ottenere/creare cliente per workspace {$workspace_name}");
+                }
+            }
+        } else {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log("FP Task Agenda - check_wordpress_posts: Avanzamento sufficiente per {$workspace_name}, nessuna task necessaria");
             }
         }
         

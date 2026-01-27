@@ -18,6 +18,9 @@
             // Apri modal selezione template
             $(document).on('click', '#fp-create-from-template-btn', this.openTemplateSelectModal);
             
+            // Verifica post FP Publisher
+            $(document).on('click', '#fp-check-publisher-posts-btn', this.checkPublisherPosts);
+            
             // Seleziona template dalla card
             $(document).on('click', '.fp-template-card', this.selectTemplate);
             
@@ -587,8 +590,10 @@
             }
             
             // Mappa tipo a classe e icona
-            var typeClass = 'fp-toast-' + (type === 'info' ? 'success' : type);
-            var iconClass = type === 'error' ? 'dashicons-warning' : 'dashicons-yes-alt';
+            var typeClass = 'fp-toast-' + (type === 'info' ? 'info' : type);
+            var iconClass = type === 'error' ? 'dashicons-warning' : 
+                           type === 'info' ? 'dashicons-info' : 
+                           'dashicons-yes-alt';
             
             var toast = $(
                 '<div class="fp-toast ' + typeClass + '">' +
@@ -970,6 +975,51 @@
                 error: function() {
                     TaskAgenda.showNotice('Errore di connessione', 'error');
                     $btn.prop('disabled', false);
+                }
+            });
+        },
+        
+        checkPublisherPosts: function(e) {
+            e.preventDefault();
+            var $btn = $(this);
+            var originalText = $btn.html();
+            
+            // Disabilita il pulsante e mostra loading
+            $btn.prop('disabled', true).html('<span class="dashicons dashicons-update" style="animation: fp-spin 1s linear infinite;"></span> Verifica in corso...');
+            
+            $.ajax({
+                url: fpTaskAgenda.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'fp_task_agenda_check_publisher_posts',
+                    nonce: fpTaskAgenda.nonce
+                },
+                success: function(response) {
+                    if (response.success) {
+                        var message = response.data.message || 'Verifica completata';
+                        var tasksCreated = response.data.tasks_created || 0;
+                        
+                        if (tasksCreated > 0) {
+                            message += ' - ' + tasksCreated + ' task create';
+                            TaskAgenda.showNotice(message, 'success');
+                            // Ricarica la pagina dopo 1 secondo per mostrare le nuove task
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1000);
+                        } else {
+                            message += ' - Nessuna nuova task creata';
+                            TaskAgenda.showNotice(message, 'info');
+                        }
+                    } else {
+                        TaskAgenda.showNotice(response.data.message || 'Errore durante la verifica', 'error');
+                    }
+                    
+                    // Ripristina il pulsante
+                    $btn.prop('disabled', false).html(originalText);
+                },
+                error: function() {
+                    TaskAgenda.showNotice('Errore di connessione durante la verifica', 'error');
+                    $btn.prop('disabled', false).html(originalText);
                 }
             });
         }
