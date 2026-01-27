@@ -379,6 +379,7 @@ class PublisherIntegration {
     
     /**
      * Verifica post mancanti per social (ultimo post programmato)
+     * Calcola i dati dalla tabella fp_pub_jobs invece di cercare colonne inesistenti
      */
     public static function check_social_posts($workspace_id, $workspace_name) {
         global $wpdb;
@@ -387,12 +388,23 @@ class PublisherIntegration {
             return false;
         }
         
-        $publisher_table = $wpdb->prefix . 'fp_pub_remote_sites';
-        $table_name_safe = esc_sql($publisher_table);
+        // I dati vengono calcolati dinamicamente dalla tabella jobs
+        $jobs_table = $wpdb->prefix . 'fp_pub_jobs';
+        $jobs_table_safe = esc_sql($jobs_table);
         
-        // Ottieni TUTTE le colonne per vedere cosa c'è realmente
+        // Verifica se la tabella jobs esiste
+        $jobs_table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$jobs_table_safe}'") === $jobs_table;
+        if (!$jobs_table_exists) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('FP Task Agenda - Tabella jobs non trovata: ' . $jobs_table);
+            }
+            return false;
+        }
+        
+        // Ottieni configurazione dal workspace
+        $publisher_table = $wpdb->prefix . 'fp_pub_remote_sites';
         $workspace = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$table_name_safe} WHERE id = %d",
+            "SELECT content_config FROM {$publisher_table} WHERE id = %d",
             absint($workspace_id)
         ));
         
@@ -400,238 +412,130 @@ class PublisherIntegration {
             return false;
         }
         
-        // Mostra tutte le colonne disponibili per debug
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            $all_columns = $wpdb->get_results("SHOW COLUMNS FROM {$table_name_safe}");
-            $column_list = array_map(function($col) { return $col->Field; }, $all_columns);
-            error_log('FP Task Agenda - Tutte le colonne disponibili: ' . implode(', ', $column_list));
-            error_log('FP Task Agenda - Workspace data: ' . print_r($workspace, true));
-        }
+        // Decodifica content_config per ottenere i target mensili
+        $config = !empty($workspace->content_config) ? json_decode($workspace->content_config, true) : array();
+        $target_posts = isset($config['posts_per_month']) ? (int)$config['posts_per_month'] : 0;
+        $target_reels = isset($config['reels_per_month']) ? (int)$config['reels_per_month'] : 0;
         
-        // Cerca colonna ultimo post - prova vari nomi possibili
-        $column_name = null;
-        $possible_names = array(
-            'ultimo_post_programmato', 'ultimo_post', 'last_post', 'last_post_scheduled',
-            'ultimo_post_social', 'last_social_post', 'last_post_date', 'ultima_pubblicazione',
-            'last_publication', 'last_post_programmato', 'ultimo_post_pubblicato'
-        );
+        // Calcola statistiche per il mese corrente
+        $current_month_start = date('Y-m-01 00:00:00');
+        $current_month_end = date('Y-m-t 23:59:59');
         
-        foreach ($possible_names as $name) {
-            if (isset($workspace->$name) && !empty($workspace->$name)) {
-                $column_name = $name;
-                break;
-            }
-        }
+        // Conta post social pubblicati questo mese
+        $posts_published = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$jobs_table_safe} 
+            WHERE remote_site_id = %d 
+            AND post_type = 'post'
+            AND status IN ('published', 'completed')
+            AND COALESCE(published_at, scheduled_at) >= %s
+            AND COALESCE(published_at, scheduled_at) <= %s",
+            absint($workspace_id),
+            $current_month_start,
+            $current_month_end
+        ));
         
-        // Se non trovata, cerca case-insensitive
-        if (!$column_name) {
-            foreach (get_object_vars($workspace) as $key => $value) {
-                $key_lower = strtolower($key);
-                foreach ($possible_names as $name) {
-                    if (strtolower($name) === $key_lower && !empty($value)) {
-                        $column_name = $key;
-                        break 2;
-                    }
-                }
-            }
-        }
+        // Conta reel pubblicati questo mese
+        $reels_published = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$jobs_table_safe} 
+            WHERE remote_site_id = %d 
+            AND post_type = 'reel'
+            AND status IN ('published', 'completed')
+            AND COALESCE(published_at, scheduled_at) >= %s
+            AND COALESCE(published_at, scheduled_at) <= %s",
+            absint($workspace_id),
+            $current_month_start,
+            $current_month_end
+        ));
         
-        if (!$column_name) {
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('FP Task Agenda - Colonna "Ultimo Post Programmato" non trovata. Colonne disponibili: ' . implode(', ', array_keys(get_object_vars($workspace))));
-            }
-            return false;
-        }
+        // Ottieni ultimo post social pubblicato
+        $last_social_post = $wpdb->get_row($wpdb->prepare(
+            "SELECT published_at, scheduled_at, status 
+            FROM {$jobs_table_safe} 
+            WHERE remote_site_id = %d 
+            AND post_type IN ('post', 'reel', 'story')
+            AND status IN ('published', 'completed')
+            ORDER BY COALESCE(published_at, scheduled_at) DESC 
+            LIMIT 1",
+            absint($workspace_id)
+        ));
         
-        $column_value = $workspace->$column_name;
-        
-        
-        // Verifica se c'è uno stato "Attenzione" o "Urgente" o problemi
-        // Cerca in: colonna status, valore ultimo post programmato, e colonna avanzamento
+        // Calcola se c'è bisogno di attenzione o urgenza basandosi sul prossimo post programmato
+        // Come mostrato nell'interfaccia: "🟡 Attenzione" o "🔴 Urgente" nella colonna "Ultimo Post Programmato"
         $has_attention = false;
+        $is_urgent = false;
         
-        // 1. Verifica colonna status dedicata
-        if ($status_column && isset($workspace->$status_column)) {
-            $status_value = strtolower($workspace->$status_column);
-            if (strpos($status_value, 'attenzione') !== false || 
-                strpos($status_value, 'attention') !== false ||
-                strpos($status_value, 'urgente') !== false ||
-                strpos($status_value, 'urgent') !== false ||
-                strpos($status_value, 'warning') !== false ||
-                strpos($status_value, 'problema') !== false) {
+        // Ottieni il prossimo post programmato
+        $next_scheduled_post = $wpdb->get_row($wpdb->prepare(
+            "SELECT scheduled_at 
+            FROM {$jobs_table_safe} 
+            WHERE remote_site_id = %d 
+            AND post_type IN ('post', 'reel', 'story')
+            AND status IN ('pending', 'scheduled')
+            AND scheduled_at > NOW()
+            ORDER BY scheduled_at ASC 
+            LIMIT 1",
+            absint($workspace_id)
+        ));
+        
+        if ($next_scheduled_post && !empty($next_scheduled_post->scheduled_at)) {
+            $next_post_timestamp = strtotime($next_scheduled_post->scheduled_at);
+            $now_timestamp = time();
+            $days_until_next = floor(($next_post_timestamp - $now_timestamp) / (60 * 60 * 24));
+            
+            // Logica basata su quanto visto nell'interfaccia:
+            // - "🔴 Urgente" quando mancano pochi giorni (es. 3-4 giorni)
+            // - "🟡 Attenzione" quando mancano più giorni ma comunque vicino (es. 7-14 giorni)
+            if ($days_until_next <= 4) {
+                $is_urgent = true;
                 $has_attention = true;
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log("FP Task Agenda - check_social_posts: Stato 'Attenzione/Urgente' trovato in colonna status per {$workspace_name}");
-                }
-            }
-        }
-        
-        // 2. Verifica anche nel valore dell'ultimo post programmato (potrebbe contenere HTML con "Attenzione" o "Urgente")
-        if (!$has_attention && !empty($column_value)) {
-            $column_value_str = strip_tags((string) $column_value); // Rimuovi HTML
-            $column_value_lower = strtolower($column_value_str);
-            if (strpos($column_value_lower, 'attenzione') !== false || 
-                strpos($column_value_lower, 'attention') !== false ||
-                strpos($column_value_lower, 'urgente') !== false ||
-                strpos($column_value_lower, 'urgent') !== false ||
-                strpos($column_value_lower, 'warning') !== false) {
+            } elseif ($days_until_next <= 14) {
                 $has_attention = true;
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log("FP Task Agenda - check_social_posts: Stato 'Attenzione/Urgente' trovato nel valore ultimo post programmato per {$workspace_name}");
-                }
-            }
-        }
-        
-        // 3. Verifica anche nella colonna avanzamento (potrebbe contenere info sull'attenzione/urgenza)
-        if (!$has_attention && $progress_column && isset($workspace->$progress_column)) {
-            $progress_value_str = strip_tags((string) $workspace->$progress_column);
-            $progress_value_lower = strtolower($progress_value_str);
-            if (strpos($progress_value_lower, 'attenzione') !== false || 
-                strpos($progress_value_lower, 'attention') !== false ||
-                strpos($progress_value_lower, 'urgente') !== false ||
-                strpos($progress_value_lower, 'urgent') !== false) {
-                $has_attention = true;
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log("FP Task Agenda - check_social_posts: Stato 'Attenzione/Urgente' trovato in colonna avanzamento per {$workspace_name}");
-                }
-            }
-        }
-        
-        // Verifica se ci sono progressi 0/1 per Reel o Art.
-        $has_missing_content = false;
-        $missing_content_types = array();
-        if ($progress_column && isset($workspace->$progress_column)) {
-            $progress_value = (string) $workspace->$progress_column;
-            // Cerca pattern tipo "Reel 0/1" o "Art. 0/1"
-            if (preg_match('/Reel\s*0\s*\/\s*\d+/i', $progress_value, $matches)) {
-                $has_missing_content = true;
-                $missing_content_types[] = 'Reel';
-            }
-            if (preg_match('/Art\.?\s*0\s*\/\s*\d+/i', $progress_value, $matches)) {
-                $has_missing_content = true;
-                $missing_content_types[] = 'Articolo';
-            }
-        }
-        
-        if (empty($column_value) && $column_value !== '0' && $column_value !== 0) {
-            // Nessun post programmato, potrebbe essere un problema
-            $client_id = self::get_or_create_client($workspace_id, $workspace_name);
-            
-            if ($client_id) {
-                return self::create_task_for_client(
-                    $client_id,
-                    __('Post Social Mancanti', 'fp-task-agenda'),
-                    $workspace_name,
-                    __('Nessun post social programmato trovato per questo cliente.', 'fp-task-agenda')
-                );
-            }
-            return false;
-        }
-        
-        // Verifica se l'ultimo post è troppo vecchio
-        $last_post_date = $column_value;
-        $days_threshold = get_option('fp_task_agenda_social_days_threshold', 7);
-        
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log("FP Task Agenda - check_social_posts: Workspace {$workspace_name} (ID: {$workspace_id})");
-            error_log("FP Task Agenda - check_social_posts: Ultimo post raw: " . var_export($column_value, true));
-            error_log("FP Task Agenda - check_social_posts: Status column: " . ($status_column ? $status_column : 'non trovata'));
-            if ($status_column && isset($workspace->$status_column)) {
-                error_log("FP Task Agenda - check_social_posts: Status value: " . var_export($workspace->$status_column, true));
-            }
-            error_log("FP Task Agenda - check_social_posts: Soglia: {$days_threshold} giorni");
-        }
-        
-        // Converti la data in timestamp
-        $last_post_timestamp = strtotime($last_post_date);
-        if (!$last_post_timestamp) {
-            // Se non riesce a convertire la data, potrebbe essere un formato non standard
-            // Prova a loggare per debug
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('FP Task Agenda - Impossibile convertire data ultimo post: ' . $last_post_date . ' per workspace ' . $workspace_name);
-            }
-            return false;
-        }
-        
-        $days_ago = floor((time() - $last_post_timestamp) / (60 * 60 * 24));
-        
-        // Se la data è nel futuro (post programmato), considera giorni_ago = 0
-        if ($days_ago < 0) {
-            $days_ago = 0;
-        }
-        
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log("FP Task Agenda - check_social_posts: Giorni trascorsi: {$days_ago}, Soglia: {$days_threshold}");
-        }
-        
-        // Crea task SOLO se c'è stato "Attenzione" o "Urgente"
-        // Il sistema FP Publisher gestisce già la logica per determinare quando impostare "Attenzione/Urgente"
-        // (post vecchi, progressi 0/1, ecc.) quindi usiamo solo quello come criterio
-        $should_create_task = false;
-        $task_description = '';
-        $task_title = __('Post Social - Attenzione/Urgente', 'fp-task-agenda');
-        
-        if ($has_attention) {
-            $should_create_task = true;
-            $task_description = __('Stato "Attenzione/Urgente" rilevato per l\'ultimo post programmato. Verifica necessaria.', 'fp-task-agenda');
-            
-            // Aggiungi informazioni aggiuntive se disponibili (solo per contesto, non come trigger)
-            $additional_info = array();
-            
-            if ($days_ago >= $days_threshold) {
-                $additional_info[] = sprintf(
-                    __('Ultimo post pubblicato %d giorni fa (soglia: %d giorni)', 'fp-task-agenda'),
-                    $days_ago,
-                    $days_threshold
-                );
-            }
-            
-            if ($has_missing_content && !empty($missing_content_types)) {
-                $missing_types_str = implode(' e ', $missing_content_types);
-                $additional_info[] = sprintf(
-                    __('Contenuti mancanti: %s (0/1)', 'fp-task-agenda'),
-                    $missing_types_str
-                );
-            }
-            
-            if (!empty($additional_info)) {
-                $task_description .= ' ' . __('Dettagli:', 'fp-task-agenda') . ' ' . implode(', ', $additional_info) . '.';
-            }
-            
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log("FP Task Agenda - check_social_posts: Stato 'Attenzione/Urgente' rilevato per {$workspace_name}");
             }
         } else {
-            // Nessuna attenzione/urgenza, non creare task
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log("FP Task Agenda - check_social_posts: Nessuno stato 'Attenzione/Urgente' per {$workspace_name}, nessuna task necessaria");
+            // Nessun post programmato - verifica se l'ultimo post è troppo vecchio
+            if ($last_social_post) {
+                $last_post_date = !empty($last_social_post->published_at) 
+                    ? $last_social_post->published_at 
+                    : $last_social_post->scheduled_at;
+                
+                $last_post_timestamp = strtotime($last_post_date);
+                if ($last_post_timestamp) {
+                    $days_ago = floor((time() - $last_post_timestamp) / (60 * 60 * 24));
+                    $days_threshold = get_option('fp_task_agenda_social_days_threshold', 7);
+                    
+                    // Se l'ultimo post è vecchio e non ci sono post programmati, è un problema
+                    if ($days_ago >= $days_threshold) {
+                        if ($days_ago <= 3) {
+                            $is_urgent = true;
+                        }
+                        $has_attention = true;
+                    }
+                }
+            } else {
+                // Nessun post social trovato - potrebbe essere un problema se ci sono target configurati
+                if ($target_posts > 0 || $target_reels > 0) {
+                    $has_attention = true;
+                }
             }
         }
         
-        if ($should_create_task) {
+        // Crea task SOLO se c'è "Attenzione" o "Urgente"
+        if ($has_attention) {
             $client_id = self::get_or_create_client($workspace_id, $workspace_name);
             
             if ($client_id) {
-                $result = self::create_task_for_client(
+                $status_text = $is_urgent ? __('Urgente', 'fp-task-agenda') : __('Attenzione', 'fp-task-agenda');
+                $task_description = sprintf(
+                    __('Stato "%s" rilevato per i post social.', 'fp-task-agenda'),
+                    $status_text
+                );
+                
+                return self::create_task_for_client(
                     $client_id,
-                    $task_title,
+                    sprintf(__('Nuovi post %s', 'fp-task-agenda'), $workspace_name),
                     $workspace_name,
                     $task_description
                 );
-                
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log("FP Task Agenda - check_social_posts: Risultato creazione task: " . ($result ? "OK (ID: {$result})" : "FALLITA"));
-                }
-                
-                return $result;
-            } else {
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log("FP Task Agenda - check_social_posts: Impossibile ottenere/creare cliente per workspace {$workspace_name}");
-                }
-            }
-        } else {
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log("FP Task Agenda - check_social_posts: Post ancora recente ({$days_ago} giorni < {$days_threshold}), nessuna task necessaria");
             }
         }
         
@@ -640,6 +544,7 @@ class PublisherIntegration {
     
     /**
      * Verifica post mancanti per WordPress (avanzamento mensile)
+     * Calcola i dati dalla tabella fp_pub_jobs invece di cercare colonne inesistenti
      */
     public static function check_wordpress_posts($workspace_id, $workspace_name) {
         global $wpdb;
@@ -648,12 +553,23 @@ class PublisherIntegration {
             return false;
         }
         
-        $publisher_table = $wpdb->prefix . 'fp_pub_remote_sites';
-        $table_name_safe = esc_sql($publisher_table);
+        // I dati vengono calcolati dinamicamente dalla tabella jobs
+        $jobs_table = $wpdb->prefix . 'fp_pub_jobs';
+        $jobs_table_safe = esc_sql($jobs_table);
         
-        // Ottieni TUTTE le colonne per vedere cosa c'è realmente
+        // Verifica se la tabella jobs esiste
+        $jobs_table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$jobs_table_safe}'") === $jobs_table;
+        if (!$jobs_table_exists) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('FP Task Agenda - Tabella jobs non trovata: ' . $jobs_table);
+            }
+            return false;
+        }
+        
+        // Ottieni configurazione dal workspace
+        $publisher_table = $wpdb->prefix . 'fp_pub_remote_sites';
         $workspace = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$table_name_safe} WHERE id = %d",
+            "SELECT content_config FROM {$publisher_table} WHERE id = %d",
             absint($workspace_id)
         ));
         
@@ -661,251 +577,51 @@ class PublisherIntegration {
             return false;
         }
         
-        // Mostra tutte le colonne disponibili per debug
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            $all_columns = $wpdb->get_results("SHOW COLUMNS FROM {$table_name_safe}");
-            $column_list = array_map(function($col) { return $col->Field; }, $all_columns);
-            error_log('FP Task Agenda - Tutte le colonne disponibili (WordPress): ' . implode(', ', $column_list));
-            error_log('FP Task Agenda - Workspace data keys (WordPress): ' . implode(', ', array_keys(get_object_vars($workspace))));
-        }
+        // Decodifica content_config per ottenere il target mensile
+        $config = !empty($workspace->content_config) ? json_decode($workspace->content_config, true) : array();
+        $target_articles = isset($config['articles_per_month']) ? (int)$config['articles_per_month'] : 0;
         
-        // Cerca colonna avanzamento - prova vari nomi possibili direttamente nell'oggetto
-        $column_name = null;
-        $possible_names = array(
-            'avanzamento', 'progress', 'monthly_progress', 'articoli_mensili',
-            'monthly_articles', 'wp_progress', 'article_progress', 'articoli_progress'
-        );
-        
-        foreach ($possible_names as $name) {
-            if (isset($workspace->$name) && !empty($workspace->$name)) {
-                $column_name = $name;
-                break;
-            }
-        }
-        
-        // Se non trovata, cerca case-insensitive nell'oggetto workspace
-        if (!$column_name) {
-            foreach (get_object_vars($workspace) as $key => $value) {
-                $key_lower = strtolower($key);
-                foreach ($possible_names as $name) {
-                    if (strtolower($name) === $key_lower && !empty($value)) {
-                        $column_name = $key;
-                        break 2;
-                    }
-                }
-            }
-        }
-        
-        if (!$column_name) {
+        // Se non c'è target configurato, non creare task
+        if ($target_articles <= 0) {
             if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('FP Task Agenda - Colonna "Avanzamento" non trovata. Colonne disponibili: ' . implode(', ', array_keys(get_object_vars($workspace))));
+                error_log("FP Task Agenda - check_wordpress_posts: Nessun target articoli configurato per {$workspace_name}");
             }
             return false;
         }
         
-        $avanzamento = $workspace->$column_name;
+        // Calcola statistiche per il mese corrente
+        $current_month_start = date('Y-m-01 00:00:00');
+        $current_month_end = date('Y-m-t 23:59:59');
         
-        // Cerca anche colonna per stato "Attenzione" direttamente nell'oggetto
-        $status_column = null;
+        // Conta articoli WordPress pubblicati questo mese
+        $articles_published = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$jobs_table_safe} 
+            WHERE remote_site_id = %d 
+            AND post_type = 'article'
+            AND status IN ('published', 'completed')
+            AND COALESCE(published_at, scheduled_at) >= %s
+            AND COALESCE(published_at, scheduled_at) <= %s",
+            absint($workspace_id),
+            $current_month_start,
+            $current_month_end
+        ));
         
-        foreach (get_object_vars($workspace) as $key => $value) {
-            $key_lower = strtolower($key);
-            if (!$status_column && (strpos($key_lower, 'status') !== false || strpos($key_lower, 'stato') !== false)) {
-                $status_column = $key;
-            }
-        }
+        // Verifica se è "0/1" (caso specifico per WordPress)
+        // Crea task SOLO se: target = 1 e articoli pubblicati = 0
+        $needs_article = false;
+        $description = '';
         
-        // Verifica se c'è uno stato "Attenzione" o "Urgente" per WordPress
-        // Cerca in: colonna status e valore avanzamento
-        $has_attention = false;
-        
-        // 1. Verifica colonna status dedicata
-        if ($status_column && isset($workspace->$status_column)) {
-            $status_value = strtolower($workspace->$status_column);
-            if (strpos($status_value, 'attenzione') !== false || 
-                strpos($status_value, 'attention') !== false ||
-                strpos($status_value, 'urgente') !== false ||
-                strpos($status_value, 'urgent') !== false ||
-                strpos($status_value, 'warning') !== false ||
-                strpos($status_value, 'problema') !== false) {
-                $has_attention = true;
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log("FP Task Agenda - check_wordpress_posts: Stato 'Attenzione/Urgente' trovato in colonna status per {$workspace_name}");
-                }
-            }
-        }
-        
-        // 2. Verifica anche nel valore avanzamento (potrebbe contenere HTML con "Attenzione" o "Urgente")
-        if (!$has_attention && !empty($avanzamento)) {
-            $avanzamento_str_clean = strip_tags((string) $avanzamento); // Rimuovi HTML
-            $avanzamento_lower = strtolower($avanzamento_str_clean);
-            if (strpos($avanzamento_lower, 'attenzione') !== false || 
-                strpos($avanzamento_lower, 'attention') !== false ||
-                strpos($avanzamento_lower, 'urgente') !== false ||
-                strpos($avanzamento_lower, 'urgent') !== false ||
-                strpos($avanzamento_lower, 'warning') !== false) {
-                $has_attention = true;
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log("FP Task Agenda - check_wordpress_posts: Stato 'Attenzione/Urgente' trovato nel valore avanzamento per {$workspace_name}");
-                }
-            }
-        }
-        
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log("FP Task Agenda - check_wordpress_posts: Workspace {$workspace_name} (ID: {$workspace_id})");
-            error_log("FP Task Agenda - check_wordpress_posts: Avanzamento raw: " . var_export($avanzamento, true));
-            error_log("FP Task Agenda - check_wordpress_posts: Status column: " . ($status_column ? $status_column : 'non trovata'));
-            if ($status_column && isset($workspace->$status_column)) {
-                error_log("FP Task Agenda - check_wordpress_posts: Status value: " . var_export($workspace->$status_column, true));
-            }
-        }
-        
-        // Se l'avanzamento è null o vuoto, considera che mancano articoli
-        if (empty($avanzamento) && $avanzamento !== '0' && $avanzamento !== 0) {
+        if ($target_articles == 1 && $articles_published == 0) {
             $needs_article = true;
-            $description = __('Nessun dato di avanzamento disponibile. Verifica gli articoli WordPress per questo mese.', 'fp-task-agenda');
+            $description = __('Avanzamento articoli WordPress: 0/1. È necessario pubblicare l\'articolo previsto per il mese corrente.', 'fp-task-agenda');
             
             if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log("FP Task Agenda - check_wordpress_posts: Avanzamento vuoto/null, creazione task per {$workspace_name}");
-            }
-        } else {
-            // Interpreta l'avanzamento
-            // Potrebbe essere un numero (es. 2/4 articoli), una percentuale, o un testo
-            // Verifica se indica mancanza di articoli per il mese corrente
-            $needs_article = false;
-            $description = '';
-            
-            if (is_numeric($avanzamento)) {
-                // Se è un numero, verifica se è inferiore a una soglia
-                // Assumiamo che 0 o valori molto bassi indichino mancanza
-                if ($avanzamento == 0 || $avanzamento < 1) {
-                    $needs_article = true;
-                    $description = __('Nessun articolo WordPress pubblicato questo mese.', 'fp-task-agenda');
-                }
-            } else {
-                // Se è una stringa, cerca pattern come "0/4", "0%", "nessun articolo", etc.
-                $avanzamento_str = (string) $avanzamento;
-                $avanzamento_lower = strtolower($avanzamento_str);
-                
-                // Pattern comuni che indicano mancanza
-                $missing_patterns = array(
-                    '0/',
-                    '/0',
-                    '0%',
-                    'nessun',
-                    'no article',
-                    'mancante',
-                    'missing',
-                    'da fare',
-                    'to do'
-                );
-                
-                foreach ($missing_patterns as $pattern) {
-                    if (strpos($avanzamento_lower, $pattern) !== false) {
-                        $needs_article = true;
-                        $description = sprintf(
-                            __('Avanzamento articoli WordPress: %s. È necessario pubblicare articoli per il mese corrente.', 'fp-task-agenda'),
-                            $avanzamento
-                        );
-                        break;
-                    }
-                }
-                
-                // Se contiene pattern tipo "X/Y" dove X è 0 o molto basso rispetto a Y
-                if (preg_match('/^(\d+)\s*\/\s*(\d+)/i', $avanzamento_str, $matches)) {
-                    $current = (int) $matches[1];
-                    $target = (int) $matches[2];
-                    
-                    // Se non ci sono articoli pubblicati (0/Y) o se siamo sotto il 50% del target
-                    if ($current == 0 || ($target > 0 && ($current / $target) < 0.5)) {
-                        $needs_article = true;
-                        $description = sprintf(
-                            __('Avanzamento articoli WordPress: %s (pubblicati %d su %d previsti). È necessario pubblicare più articoli per il mese corrente.', 'fp-task-agenda'),
-                            $avanzamento,
-                            $current,
-                            $target
-                        );
-                    }
-                } elseif (preg_match('/^0\s*\/\s*\d+/i', $avanzamento_str)) {
-                    // Pattern alternativo per "0/Y"
-                    $needs_article = true;
-                    $description = sprintf(
-                        __('Avanzamento articoli WordPress: %s. È necessario pubblicare articoli per il mese corrente.', 'fp-task-agenda'),
-                        $avanzamento
-                    );
-                }
-                
-                // Verifica anche pattern tipo "Art. 0/1" o "Art 0/1" nell'avanzamento
-                if (preg_match('/Art\.?\s*0\s*\/\s*\d+/i', $avanzamento_str, $matches)) {
-                    $needs_article = true;
-                    if (empty($description)) {
-                        $description = sprintf(
-                            __('Avanzamento articoli WordPress: %s. Articoli mancanti rilevati (0/1). È necessario pubblicare articoli per il mese corrente.', 'fp-task-agenda'),
-                            $avanzamento
-                        );
-                    } else {
-                        $description .= ' ' . __('Articoli mancanti rilevati (0/1).', 'fp-task-agenda');
-                    }
-                }
+                error_log("FP Task Agenda - check_wordpress_posts: Avanzamento 0/1 rilevato per {$workspace_name}, creazione task");
             }
         }
         
-        // Crea task SOLO se:
-        // 1. C'è stato "Attenzione" o "Urgente" OPPURE
-        // 2. L'avanzamento è "0/1" (0 articoli su 1 previsto) - caso specifico per WordPress
-        // NON creare task per avanzamento vuoto/null o "piano non configurato"
-        $should_create_task = false;
-        
-        if ($has_attention) {
-            // Se c'è stato "Attenzione" o "Urgente", crea sempre task
-            $should_create_task = true;
-            if (empty($description)) {
-                $description = __('Stato "Attenzione/Urgente" rilevato per gli articoli WordPress. Verifica necessaria.', 'fp-task-agenda');
-            } else {
-                $description = __('Stato "Attenzione/Urgente" rilevato. ', 'fp-task-agenda') . $description;
-            }
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log("FP Task Agenda - check_wordpress_posts: Stato 'Attenzione/Urgente' rilevato per {$workspace_name}");
-            }
-        } elseif ($needs_article) {
-            // Rimuovi HTML e normalizza spazi
-            $avanzamento_str = strip_tags((string) $avanzamento);
-            $avanzamento_str = preg_replace('/\s+/', ' ', $avanzamento_str); // Normalizza spazi multipli
-            $avanzamento_str = trim($avanzamento_str);
-            
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log("FP Task Agenda - check_wordpress_posts: Avanzamento pulito per {$workspace_name}: '{$avanzamento_str}'");
-            }
-            
-            // Caso specifico: "0/1" o "Art. 0/1" - crea sempre task per WordPress
-            // Pattern più flessibili per catturare vari formati
-            $is_zero_of_one = false;
-            if (preg_match('/Art\.?\s*0\s*\/\s*1\b/i', $avanzamento_str, $matches)) {
-                $is_zero_of_one = true;
-            } elseif (preg_match('/\b0\s*\/\s*1\b/i', $avanzamento_str, $matches)) {
-                // Pattern per "0/1" standalone (con word boundaries)
-                $is_zero_of_one = true;
-            } elseif (preg_match('/Post\s+\d+\s*\/\s*\d+.*Art\.?\s*0\s*\/\s*1/i', $avanzamento_str, $matches)) {
-                // Pattern per "Post X/Y ... Art. 0/1"
-                $is_zero_of_one = true;
-            }
-            
-            if ($is_zero_of_one) {
-                // Caso specifico: 0/1 - crea sempre task
-                $should_create_task = true;
-                if (empty($description)) {
-                    $description = __('Avanzamento articoli WordPress: 0/1. È necessario pubblicare l\'articolo previsto per il mese corrente.', 'fp-task-agenda');
-                }
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log("FP Task Agenda - check_wordpress_posts: Avanzamento 0/1 rilevato per {$workspace_name}, creazione task");
-                }
-            } else {
-                // Non creare task per altri casi (avanzamento vuoto/null, "piano non configurato", ecc.)
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log("FP Task Agenda - check_wordpress_posts: Avanzamento insufficiente ma nessuno stato 'Attenzione' e non è 0/1 per {$workspace_name}, nessuna task necessaria");
-                }
-            }
-        }
+        // Crea task SOLO se è "0/1"
+        $should_create_task = $needs_article;
         
         if ($should_create_task) {
             if (defined('WP_DEBUG') && WP_DEBUG) {
@@ -918,7 +634,7 @@ class PublisherIntegration {
                 // Crea task ricorrente mensile per articoli blog
                 $result = self::create_task_for_client(
                     $client_id,
-                    __('Articolo WordPress Mancante', 'fp-task-agenda'),
+                    sprintf(__('Blog post %s', 'fp-task-agenda'), $workspace_name),
                     $workspace_name,
                     $description,
                     array(
