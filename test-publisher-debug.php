@@ -6,11 +6,40 @@
  */
 
 define('WP_USE_THEMES', false);
-$wp_load = dirname(__FILE__) . '/../../../../wp-load.php';
-if (file_exists($wp_load)) {
+
+// Cerca wp-load.php partendo dalla directory corrente e salendo
+$current_dir = __DIR__;
+$wp_load = null;
+$max_levels = 6; // Massimo 6 livelli da salire
+
+for ($i = 0; $i < $max_levels; $i++) {
+    $test_path = $current_dir . '/wp-load.php';
+    if (file_exists($test_path)) {
+        $wp_load = $test_path;
+        break;
+    }
+    $parent_dir = dirname($current_dir);
+    // Evita loop infiniti
+    if ($parent_dir === $current_dir || $parent_dir === '/' || $parent_dir === 'C:\\') {
+        break;
+    }
+    $current_dir = $parent_dir;
+}
+
+if ($wp_load && file_exists($wp_load)) {
     require_once $wp_load;
 } else {
-    die('wp-load.php non trovato');
+    // Mostra info di debug
+    $debug_info = "wp-load.php non trovato.\n";
+    $debug_info .= "Directory corrente: " . __DIR__ . "\n";
+    $debug_info .= "Percorsi provati:\n";
+    $test_dir = __DIR__;
+    for ($i = 0; $i < $max_levels; $i++) {
+        $debug_info .= "  - " . $test_dir . "/wp-load.php\n";
+        $test_dir = dirname($test_dir);
+        if ($test_dir === dirname($test_dir)) break;
+    }
+    die('<pre>' . htmlspecialchars($debug_info) . '</pre>');
 }
 
 global $wpdb;
