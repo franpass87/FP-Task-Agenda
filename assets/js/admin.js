@@ -1052,17 +1052,38 @@
         }
     };
     
+    // Esponi TaskAgenda globalmente per debug
+    window.TaskAgenda = TaskAgenda;
+    
     // Inizializza quando il DOM è pronto
     $(document).ready(function() {
-        TaskAgenda.init();
+        try {
+            TaskAgenda.init();
+        } catch (e) {
+            console.error('FP Task Agenda: Errore durante l\'inizializzazione', e);
+        }
         
         // Test diretto del pulsante (solo per debug)
         setTimeout(function() {
             var $btn = $('#fp-check-publisher-posts-btn');
             if ($btn.length > 0) {
                 console.log('FP Task Agenda: Pulsante trovato nel DOM, pronto per il click');
-                // Test click manuale (commentato, decommentare per test)
-                // $btn.trigger('click');
+                
+                // Fallback: aggiungi handler diretto se quello delegato non funziona
+                if (!$btn.data('handler-attached')) {
+                    $btn.on('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('FP Task Agenda: Click diretto sul pulsante');
+                        if (typeof TaskAgenda !== 'undefined' && typeof TaskAgenda.checkPublisherPosts === 'function') {
+                            TaskAgenda.checkPublisherPosts.call(TaskAgenda, e);
+                        } else {
+                            console.error('FP Task Agenda: TaskAgenda.checkPublisherPosts non disponibile');
+                        }
+                    });
+                    $btn.data('handler-attached', true);
+                    console.log('FP Task Agenda: Handler diretto aggiunto al pulsante');
+                }
             } else {
                 console.warn('FP Task Agenda: Pulsante verifica post FP Publisher NON trovato nel DOM');
             }
