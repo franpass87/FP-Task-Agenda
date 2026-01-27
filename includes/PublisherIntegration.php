@@ -387,6 +387,9 @@ class PublisherIntegration {
             return false;
         }
         
+        $publisher_table = $wpdb->prefix . 'fp_pub_remote_sites';
+        $table_name_safe = esc_sql($publisher_table);
+        
         // Ottieni TUTTE le colonne per vedere cosa c'è realmente
         $workspace = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$table_name_safe} WHERE id = %d",
