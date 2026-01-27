@@ -703,3 +703,80 @@ if (!defined('ABSPATH')) {
         </div>
     </div>
 </div>
+
+<?php
+// Script inline fallback per il pulsante Verifica Post FP Publisher
+// Questo garantisce che funzioni anche se il JavaScript esterno non viene caricato
+?>
+<script type="text/javascript">
+jQuery(document).ready(function($) {
+    // Fallback diretto per il pulsante Verifica Post FP Publisher
+    var $btn = $('#fp-check-publisher-posts-btn');
+    if ($btn.length > 0) {
+        // Rimuovi eventuali handler precedenti per evitare duplicati
+        $btn.off('click.fallback');
+        
+        // Aggiungi handler diretto
+        $btn.on('click.fallback', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            var $this = $(this);
+            var originalText = $this.html();
+            
+            console.log('FP Task Agenda: Click sul pulsante Verifica Post FP Publisher (fallback)');
+            
+            // Disabilita il pulsante e mostra loading
+            $this.prop('disabled', true).html('<span class="dashicons dashicons-update" style="animation: fp-spin 1s linear infinite;"></span> Verifica in corso...');
+            
+            // Chiamata AJAX
+            $.ajax({
+                url: typeof fpTaskAgenda !== 'undefined' ? fpTaskAgenda.ajaxUrl : ajaxurl || '/wp-admin/admin-ajax.php',
+                type: 'POST',
+                data: {
+                    action: 'fp_task_agenda_check_publisher_posts',
+                    nonce: typeof fpTaskAgenda !== 'undefined' ? fpTaskAgenda.nonce : ''
+                },
+                success: function(response) {
+                    console.log('FP Task Agenda: Risposta AJAX ricevuta', response);
+                    
+                    if (response.success) {
+                        var message = response.data.message || 'Verifica completata';
+                        var tasksCreated = response.data.tasks_created || 0;
+                        
+                        if (tasksCreated > 0) {
+                            message += ' - ' + tasksCreated + ' task create';
+                            alert(message); // Fallback semplice
+                            // Ricarica la pagina dopo 1 secondo
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1000);
+                        } else {
+                            message += ' - Nessuna nuova task creata';
+                            alert(message); // Fallback semplice
+                        }
+                    } else {
+                        var errorMsg = response.data && response.data.message ? response.data.message : 'Errore durante la verifica';
+                        console.error('FP Task Agenda: Errore nella risposta', response);
+                        alert(errorMsg); // Fallback semplice
+                    }
+                    
+                    // Ripristina il pulsante
+                    $this.prop('disabled', false).html(originalText);
+                },
+                error: function(xhr, status, error) {
+                    console.error('FP Task Agenda: Errore AJAX', {
+                        status: status,
+                        error: error,
+                        response: xhr.responseText
+                    });
+                    alert('Errore di connessione durante la verifica: ' + error);
+                    $this.prop('disabled', false).html(originalText);
+                }
+            });
+        });
+        
+        console.log('FP Task Agenda: Handler fallback aggiunto al pulsante Verifica Post FP Publisher');
+    }
+});
+</script>
