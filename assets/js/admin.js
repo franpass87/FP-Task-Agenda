@@ -9,6 +9,13 @@
         
         init: function() {
             this.bindEvents();
+            
+            // Debug: verifica se il pulsante esiste
+            if ($('#fp-check-publisher-posts-btn').length > 0) {
+                console.log('FP Task Agenda: Pulsante verifica post FP Publisher trovato');
+            } else {
+                console.log('FP Task Agenda: Pulsante verifica post FP Publisher NON trovato');
+            }
         },
         
         bindEvents: function() {
@@ -19,7 +26,13 @@
             $(document).on('click', '#fp-create-from-template-btn', this.openTemplateSelectModal);
             
             // Verifica post FP Publisher
-            $(document).on('click', '#fp-check-publisher-posts-btn', this.checkPublisherPosts);
+            var self = this;
+            $(document).on('click', '#fp-check-publisher-posts-btn', function(e) {
+                self.checkPublisherPosts.call(self, e);
+            });
+            
+            // Debug: verifica binding eventi
+            console.log('FP Task Agenda: Eventi collegati');
             
             // Seleziona template dalla card
             $(document).on('click', '.fp-template-card', this.selectTemplate);
@@ -981,8 +994,13 @@
         
         checkPublisherPosts: function(e) {
             e.preventDefault();
+            e.stopPropagation();
+            
             var $btn = $(this);
             var originalText = $btn.html();
+            
+            // Debug
+            console.log('FP Task Agenda: Verifica post FP Publisher avviata');
             
             // Disabilita il pulsante e mostra loading
             $btn.prop('disabled', true).html('<span class="dashicons dashicons-update" style="animation: fp-spin 1s linear infinite;"></span> Verifica in corso...');
@@ -995,6 +1013,8 @@
                     nonce: fpTaskAgenda.nonce
                 },
                 success: function(response) {
+                    console.log('FP Task Agenda: Risposta AJAX ricevuta', response);
+                    
                     if (response.success) {
                         var message = response.data.message || 'Verifica completata';
                         var tasksCreated = response.data.tasks_created || 0;
@@ -1011,14 +1031,21 @@
                             TaskAgenda.showNotice(message, 'info');
                         }
                     } else {
-                        TaskAgenda.showNotice(response.data.message || 'Errore durante la verifica', 'error');
+                        var errorMsg = response.data && response.data.message ? response.data.message : 'Errore durante la verifica';
+                        console.error('FP Task Agenda: Errore nella risposta', response);
+                        TaskAgenda.showNotice(errorMsg, 'error');
                     }
                     
                     // Ripristina il pulsante
                     $btn.prop('disabled', false).html(originalText);
                 },
-                error: function() {
-                    TaskAgenda.showNotice('Errore di connessione durante la verifica', 'error');
+                error: function(xhr, status, error) {
+                    console.error('FP Task Agenda: Errore AJAX', {
+                        status: status,
+                        error: error,
+                        response: xhr.responseText
+                    });
+                    TaskAgenda.showNotice('Errore di connessione durante la verifica: ' + error, 'error');
                     $btn.prop('disabled', false).html(originalText);
                 }
             });
@@ -1028,6 +1055,18 @@
     // Inizializza quando il DOM è pronto
     $(document).ready(function() {
         TaskAgenda.init();
+        
+        // Test diretto del pulsante (solo per debug)
+        setTimeout(function() {
+            var $btn = $('#fp-check-publisher-posts-btn');
+            if ($btn.length > 0) {
+                console.log('FP Task Agenda: Pulsante trovato nel DOM, pronto per il click');
+                // Test click manuale (commentato, decommentare per test)
+                // $btn.trigger('click');
+            } else {
+                console.warn('FP Task Agenda: Pulsante verifica post FP Publisher NON trovato nel DOM');
+            }
+        }, 500);
     });
     
 })(jQuery);

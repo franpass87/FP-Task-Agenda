@@ -39,7 +39,12 @@ if (!defined('ABSPATH')) {
                 <?php echo esc_html__('Crea da Template', 'fp-task-agenda'); ?>
             </button>
             
-            <?php if (class_exists('\FP\TaskAgenda\PublisherIntegration')): ?>
+            <?php 
+            // Verifica se la classe esiste (con fallback per namespace completo)
+            $publisher_integration_exists = class_exists('\FP\TaskAgenda\PublisherIntegration') || 
+                                           class_exists('FP\TaskAgenda\PublisherIntegration');
+            if ($publisher_integration_exists): 
+            ?>
             <button type="button" class="fp-btn fp-btn-secondary" id="fp-check-publisher-posts-btn" title="<?php echo esc_attr__('Verifica post mancanti in FP Publisher e crea task automaticamente', 'fp-task-agenda'); ?>">
                 <span class="dashicons dashicons-update"></span>
                 <?php echo esc_html__('Verifica Post FP Publisher', 'fp-task-agenda'); ?>
