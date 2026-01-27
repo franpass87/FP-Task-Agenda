@@ -245,9 +245,28 @@ class PublisherIntegration {
         
         // Verifica se esiste già una task simile ATTIVA (pending/in_progress)
         // Se la task è completata, possiamo crearne una nuova se necessario
-        if (self::task_exists($client_id, $task_type)) {
+        $existing_task = self::task_exists($client_id, $task_type);
+        if ($existing_task) {
             if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log("FP Task Agenda - Task già esistente (pending/in_progress) per cliente {$client_id}, tipo: {$task_type}");
+                error_log("FP Task Agenda - create_task_for_client: Task già esistente (pending/in_progress) per cliente {$client_id}, tipo: {$task_type}");
+                // Log più dettagliato per capire quale task esiste
+                global $wpdb;
+                $table_name = Database::get_table_name();
+                $existing_tasks = $wpdb->get_results($wpdb->prepare(
+                    "SELECT id, title, status FROM $table_name 
+                    WHERE client_id = %d 
+                    AND status IN ('pending', 'in_progress')
+                    AND title LIKE %s
+                    AND deleted_at IS NULL
+                    LIMIT 5",
+                    absint($client_id),
+                    '%' . $wpdb->esc_like($task_type) . '%'
+                ));
+                if (!empty($existing_tasks)) {
+                    foreach ($existing_tasks as $task) {
+                        error_log("FP Task Agenda - create_task_for_client: Task esistente - ID: {$task->id}, Titolo: {$task->title}, Status: {$task->status}");
+                    }
+                }
             }
             return false; // Task già esistente e attiva, non creare duplicato
         }
@@ -953,6 +972,7 @@ class PublisherIntegration {
         
         $tasks_created = 0;
         $errors = array();
+        $debug_info = array(); // Info di debug per capire cosa succede
         
         if (defined('WP_DEBUG') && WP_DEBUG) {
             error_log('FP Task Agenda - Inizio verifica post mancanti. Workspace trovati: ' . count($workspaces));
@@ -960,6 +980,15 @@ class PublisherIntegration {
         
         foreach ($workspaces as $workspace) {
             try {
+                $workspace_debug = array(
+                    'id' => $workspace->id,
+                    'name' => $workspace->name,
+                    'social_result' => false,
+                    'wp_result' => false,
+                    'social_reason' => '',
+                    'wp_reason' => ''
+                );
+                
                 if (defined('WP_DEBUG') && WP_DEBUG) {
                     error_log("FP Task Agenda - Verifica workspace: ID {$workspace->id}, Nome: {$workspace->name}");
                 }
@@ -968,10 +997,13 @@ class PublisherIntegration {
                 $social_result = self::check_social_posts($workspace->id, $workspace->name);
                 if ($social_result) {
                     $tasks_created++;
+                    $workspace_debug['social_result'] = true;
+                    $workspace_debug['social_reason'] = 'Task creata';
                     if (defined('WP_DEBUG') && WP_DEBUG) {
                         error_log("FP Task Agenda - Task social creata per workspace {$workspace->name}");
                     }
                 } else {
+                    $workspace_debug['social_reason'] = 'Nessuna task creata (già esistente o criteri non soddisfatti)';
                     if (defined('WP_DEBUG') && WP_DEBUG) {
                         error_log("FP Task Agenda - Nessuna task social creata per workspace {$workspace->name} (già esistente o non necessaria)");
                     }
@@ -981,14 +1013,19 @@ class PublisherIntegration {
                 $wp_result = self::check_wordpress_posts($workspace->id, $workspace->name);
                 if ($wp_result) {
                     $tasks_created++;
+                    $workspace_debug['wp_result'] = true;
+                    $workspace_debug['wp_reason'] = 'Task creata';
                     if (defined('WP_DEBUG') && WP_DEBUG) {
                         error_log("FP Task Agenda - Task WordPress creata per workspace {$workspace->name} (ricorrente mensile)");
                     }
                 } else {
+                    $workspace_debug['wp_reason'] = 'Nessuna task creata (già esistente o criteri non soddisfatti)';
                     if (defined('WP_DEBUG') && WP_DEBUG) {
                         error_log("FP Task Agenda - Nessuna task WordPress creata per workspace {$workspace->name} (già esistente o non necessaria)");
                     }
                 }
+                
+                $debug_info[] = $workspace_debug;
             } catch (\Exception $e) {
                 $errors[] = sprintf(
                     __('Errore per workspace %s: %s', 'fp-task-agenda'),
@@ -1021,15 +1058,22 @@ class PublisherIntegration {
         }
         
         // Se non sono state create task ma ci sono workspace, aggiungi info di debug
-        if ($tasks_created == 0 && !empty($workspaces) && defined('WP_DEBUG') && WP_DEBUG) {
-            $message .= ' ' . __('(Debug: verifica i log per dettagli sui workspace analizzati)', 'fp-task-agenda');
+        if ($tasks_created == 0 && !empty($workspaces)) {
+            $message .= ' ' . __('Nessuna task creata. Verifica i criteri (Attenzione/Urgente o WordPress 0/1).', 'fp-task-agenda');
         }
         
-        return array(
+        $result = array(
             'success' => true,
             'message' => $message,
             'tasks_created' => $tasks_created,
             'errors' => $errors
         );
+        
+        // Aggiungi info di debug se richiesto (solo in modalità debug)
+        if (defined('WP_DEBUG') && WP_DEBUG && $tasks_created == 0 && !empty($debug_info)) {
+            $result['debug_info'] = $debug_info;
+        }
+        
+        return $result;
     }
 }
