@@ -429,7 +429,10 @@ class PublisherIntegration {
         $column_value = isset($workspace->$column_name) ? $workspace->$column_name : null;
         
         // Verifica se c'è uno stato "Attenzione" o problemi
+        // Cerca in: colonna status, valore ultimo post programmato, e colonna avanzamento
         $has_attention = false;
+        
+        // 1. Verifica colonna status dedicata
         if ($status_column && isset($workspace->$status_column)) {
             $status_value = strtolower($workspace->$status_column);
             if (strpos($status_value, 'attenzione') !== false || 
@@ -437,6 +440,36 @@ class PublisherIntegration {
                 strpos($status_value, 'warning') !== false ||
                 strpos($status_value, 'problema') !== false) {
                 $has_attention = true;
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log("FP Task Agenda - check_social_posts: Stato 'Attenzione' trovato in colonna status per {$workspace_name}");
+                }
+            }
+        }
+        
+        // 2. Verifica anche nel valore dell'ultimo post programmato (potrebbe contenere HTML con "Attenzione")
+        if (!$has_attention && !empty($column_value)) {
+            $column_value_str = strip_tags((string) $column_value); // Rimuovi HTML
+            $column_value_lower = strtolower($column_value_str);
+            if (strpos($column_value_lower, 'attenzione') !== false || 
+                strpos($column_value_lower, 'attention') !== false ||
+                strpos($column_value_lower, 'warning') !== false) {
+                $has_attention = true;
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log("FP Task Agenda - check_social_posts: Stato 'Attenzione' trovato nel valore ultimo post programmato per {$workspace_name}");
+                }
+            }
+        }
+        
+        // 3. Verifica anche nella colonna avanzamento (potrebbe contenere info sull'attenzione)
+        if (!$has_attention && $progress_column && isset($workspace->$progress_column)) {
+            $progress_value_str = strip_tags((string) $workspace->$progress_column);
+            $progress_value_lower = strtolower($progress_value_str);
+            if (strpos($progress_value_lower, 'attenzione') !== false || 
+                strpos($progress_value_lower, 'attention') !== false) {
+                $has_attention = true;
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log("FP Task Agenda - check_social_posts: Stato 'Attenzione' trovato in colonna avanzamento per {$workspace_name}");
+                }
             }
         }
         
@@ -476,7 +509,13 @@ class PublisherIntegration {
         $days_threshold = get_option('fp_task_agenda_social_days_threshold', 7);
         
         if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log("FP Task Agenda - check_social_posts: Workspace {$workspace_name} (ID: {$workspace_id}), Ultimo post: {$last_post_date}, Soglia: {$days_threshold} giorni");
+            error_log("FP Task Agenda - check_social_posts: Workspace {$workspace_name} (ID: {$workspace_id})");
+            error_log("FP Task Agenda - check_social_posts: Ultimo post raw: " . var_export($column_value, true));
+            error_log("FP Task Agenda - check_social_posts: Status column: " . ($status_column ? $status_column : 'non trovata'));
+            if ($status_column && isset($workspace->$status_column)) {
+                error_log("FP Task Agenda - check_social_posts: Status value: " . var_export($workspace->$status_column, true));
+            }
+            error_log("FP Task Agenda - check_social_posts: Soglia: {$days_threshold} giorni");
         }
         
         // Converti la data in timestamp
@@ -637,7 +676,10 @@ class PublisherIntegration {
         $avanzamento = isset($workspace->$column_name) ? $workspace->$column_name : null;
         
         // Verifica se c'è uno stato "Attenzione" per WordPress
+        // Cerca in: colonna status e valore avanzamento
         $has_attention = false;
+        
+        // 1. Verifica colonna status dedicata
         if ($status_column && isset($workspace->$status_column)) {
             $status_value = strtolower($workspace->$status_column);
             if (strpos($status_value, 'attenzione') !== false || 
@@ -645,11 +687,33 @@ class PublisherIntegration {
                 strpos($status_value, 'warning') !== false ||
                 strpos($status_value, 'problema') !== false) {
                 $has_attention = true;
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log("FP Task Agenda - check_wordpress_posts: Stato 'Attenzione' trovato in colonna status per {$workspace_name}");
+                }
+            }
+        }
+        
+        // 2. Verifica anche nel valore avanzamento (potrebbe contenere HTML con "Attenzione")
+        if (!$has_attention && !empty($avanzamento)) {
+            $avanzamento_str_clean = strip_tags((string) $avanzamento); // Rimuovi HTML
+            $avanzamento_lower = strtolower($avanzamento_str_clean);
+            if (strpos($avanzamento_lower, 'attenzione') !== false || 
+                strpos($avanzamento_lower, 'attention') !== false ||
+                strpos($avanzamento_lower, 'warning') !== false) {
+                $has_attention = true;
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log("FP Task Agenda - check_wordpress_posts: Stato 'Attenzione' trovato nel valore avanzamento per {$workspace_name}");
+                }
             }
         }
         
         if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log("FP Task Agenda - check_wordpress_posts: Workspace {$workspace_name} (ID: {$workspace_id}), Avanzamento: " . var_export($avanzamento, true));
+            error_log("FP Task Agenda - check_wordpress_posts: Workspace {$workspace_name} (ID: {$workspace_id})");
+            error_log("FP Task Agenda - check_wordpress_posts: Avanzamento raw: " . var_export($avanzamento, true));
+            error_log("FP Task Agenda - check_wordpress_posts: Status column: " . ($status_column ? $status_column : 'non trovata'));
+            if ($status_column && isset($workspace->$status_column)) {
+                error_log("FP Task Agenda - check_wordpress_posts: Status value: " . var_export($workspace->$status_column, true));
+            }
         }
         
         // Se l'avanzamento è null o vuoto, considera che mancano articoli
@@ -760,13 +824,25 @@ class PublisherIntegration {
                 error_log("FP Task Agenda - check_wordpress_posts: Stato 'Attenzione' rilevato per {$workspace_name}");
             }
         } elseif ($needs_article) {
-            $avanzamento_str = (string) $avanzamento;
+            // Rimuovi HTML e normalizza spazi
+            $avanzamento_str = strip_tags((string) $avanzamento);
+            $avanzamento_str = preg_replace('/\s+/', ' ', $avanzamento_str); // Normalizza spazi multipli
+            $avanzamento_str = trim($avanzamento_str);
+            
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log("FP Task Agenda - check_wordpress_posts: Avanzamento pulito per {$workspace_name}: '{$avanzamento_str}'");
+            }
             
             // Caso specifico: "0/1" o "Art. 0/1" - crea sempre task per WordPress
+            // Pattern più flessibili per catturare vari formati
             $is_zero_of_one = false;
-            if (preg_match('/Art\.?\s*0\s*\/\s*1/i', $avanzamento_str, $matches)) {
+            if (preg_match('/Art\.?\s*0\s*\/\s*1\b/i', $avanzamento_str, $matches)) {
                 $is_zero_of_one = true;
-            } elseif (preg_match('/^0\s*\/\s*1$/i', $avanzamento_str, $matches)) {
+            } elseif (preg_match('/\b0\s*\/\s*1\b/i', $avanzamento_str, $matches)) {
+                // Pattern per "0/1" standalone (con word boundaries)
+                $is_zero_of_one = true;
+            } elseif (preg_match('/Post\s+\d+\s*\/\s*\d+.*Art\.?\s*0\s*\/\s*1/i', $avanzamento_str, $matches)) {
+                // Pattern per "Post X/Y ... Art. 0/1"
                 $is_zero_of_one = true;
             }
             
@@ -919,6 +995,10 @@ class PublisherIntegration {
         
         if (defined('WP_DEBUG') && WP_DEBUG) {
             error_log("FP Task Agenda - Verifica completata. Task create: {$tasks_created}");
+            error_log("FP Task Agenda - Workspace verificati: " . count($workspaces));
+            if ($tasks_created == 0 && !empty($workspaces)) {
+                error_log("FP Task Agenda - ATTENZIONE: 0 task create ma ci sono " . count($workspaces) . " workspace. Verifica log sopra per dettagli.");
+            }
         }
         
         $message = sprintf(
@@ -928,6 +1008,11 @@ class PublisherIntegration {
         
         if (!empty($errors)) {
             $message .= ' ' . __('Alcuni errori si sono verificati durante la verifica.', 'fp-task-agenda');
+        }
+        
+        // Se non sono state create task ma ci sono workspace, aggiungi info di debug
+        if ($tasks_created == 0 && !empty($workspaces) && defined('WP_DEBUG') && WP_DEBUG) {
+            $message .= ' ' . __('(Debug: verifica i log per dettagli sui workspace analizzati)', 'fp-task-agenda');
         }
         
         return array(
