@@ -60,20 +60,44 @@ echo "<style>
 </style></head><body>";
 echo "<h1>🔍 Debug FP Publisher Integration</h1>";
 
-// Verifica se la tabella esiste
-$publisher_table = $wpdb->prefix . 'fp_pub_remote_sites';
-$table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$publisher_table}'") === $publisher_table;
+// Verifica tutte le tabelle FP Publisher
+$publisher_tables = array(
+    'fp_pub_remote_sites' => 'Siti remoti',
+    'fp_pub_jobs' => 'Jobs',
+    'fp_pub_jobs_archive' => 'Jobs archiviati',
+    'fp_pub_media' => 'Media',
+    'fp_pub_hashtags' => 'Hashtag',
+    'fp_pub_bio_links' => 'Bio links',
+    'fp_pub_metrics' => 'Metriche',
+);
 
 echo "<div class='section'>";
-echo "<h2>1. Verifica Tabella</h2>";
-if ($table_exists) {
-    echo "<p class='success'>✅ Tabella trovata: {$publisher_table}</p>";
-} else {
-    echo "<p class='error'>❌ Tabella NON trovata: {$publisher_table}</p>";
+echo "<h2>1. Verifica Tabelle FP Publisher</h2>";
+$existing_tables = array();
+foreach ($publisher_tables as $table_suffix => $description) {
+    $table_name = $wpdb->prefix . $table_suffix;
+    $exists = $wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name;
+    if ($exists) {
+        $count = $wpdb->get_var("SELECT COUNT(*) FROM {$table_name}");
+        echo "<p class='success'>✅ {$table_suffix} ({$description}) - {$count} record</p>";
+        $existing_tables[$table_suffix] = $table_name;
+    } else {
+        echo "<p class='warning'>⚠️ {$table_suffix} ({$description}) - NON trovata</p>";
+    }
+}
+echo "</div>";
+
+// Verifica se la tabella principale esiste
+$publisher_table = $wpdb->prefix . 'fp_pub_remote_sites';
+$table_exists = isset($existing_tables['fp_pub_remote_sites']);
+
+if (!$table_exists) {
+    echo "<div class='section'>";
+    echo "<h2>Errore</h2>";
+    echo "<p class='error'>❌ Tabella principale NON trovata: {$publisher_table}</p>";
     echo "</div></body></html>";
     exit;
 }
-echo "</div>";
 
 // Mostra tutte le colonne
 echo "<div class='section'>";

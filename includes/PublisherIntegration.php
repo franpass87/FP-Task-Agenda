@@ -397,10 +397,18 @@ class PublisherIntegration {
         ));
         
         if (!$column_name) {
-            // Colonna non trovata, non possiamo verificare
+            // Colonna non trovata - i dati potrebbero essere in un'altra tabella o calcolati dinamicamente
+            // Log dettagliato per debug
             if (defined('WP_DEBUG') && WP_DEBUG) {
                 error_log('FP Task Agenda - Colonna "Ultimo Post Programmato" non trovata nella tabella FP Publisher');
+                error_log('FP Task Agenda - Workspace ID: ' . $workspace_id . ', Nome: ' . $workspace_name);
+                // Mostra tutte le colonne disponibili per debug
+                $all_columns = $wpdb->get_results("SHOW COLUMNS FROM {$table_name_safe}");
+                $column_list = array_map(function($col) { return $col->Field; }, $all_columns);
+                error_log('FP Task Agenda - Colonne disponibili: ' . implode(', ', $column_list));
             }
+            // Non restituire false immediatamente - forse i dati sono altrove o calcolati dinamicamente
+            // Per ora restituiamo false, ma potremmo dover implementare un approccio diverso
             return false;
         }
         
@@ -665,10 +673,18 @@ class PublisherIntegration {
         ));
         
         if (!$column_name) {
-            // Colonna non trovata, non possiamo verificare
+            // Colonna non trovata - i dati potrebbero essere in un'altra tabella o calcolati dinamicamente
+            // Log dettagliato per debug
             if (defined('WP_DEBUG') && WP_DEBUG) {
                 error_log('FP Task Agenda - Colonna "Avanzamento" non trovata nella tabella FP Publisher');
+                error_log('FP Task Agenda - Workspace ID: ' . $workspace_id . ', Nome: ' . $workspace_name);
+                // Mostra tutte le colonne disponibili per debug
+                $all_columns = $wpdb->get_results("SHOW COLUMNS FROM {$table_name_safe}");
+                $column_list = array_map(function($col) { return $col->Field; }, $all_columns);
+                error_log('FP Task Agenda - Colonne disponibili: ' . implode(', ', $column_list));
             }
+            // Non restituire false immediatamente - forse i dati sono altrove o calcolati dinamicamente
+            // Per ora restituiamo false, ma potremmo dover implementare un approccio diverso
             return false;
         }
         
