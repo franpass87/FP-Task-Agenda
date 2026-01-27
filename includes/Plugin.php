@@ -41,6 +41,9 @@ class Plugin {
         // Hook per cron job pulizia task archiviati
         add_action('fp_task_agenda_cleanup_archived', array($this, 'cleanup_archived_tasks'));
         
+        // Hook per cron job verifica post mancanti FP Publisher
+        add_action('fp_task_agenda_check_publisher_posts', array($this, 'check_publisher_missing_posts'));
+        
         // Carica admin solo se siamo nell'admin
         if (is_admin()) {
             Admin::get_instance();
@@ -247,6 +250,13 @@ class Plugin {
     }
     
     /**
+     * Verifica post mancanti in FP Publisher e crea task automaticamente
+     */
+    public function check_publisher_missing_posts() {
+        PublisherIntegration::check_missing_posts();
+    }
+    
+    /**
      * Attivazione plugin
      */
     public static function activate() {
@@ -274,6 +284,11 @@ class Plugin {
         if (!wp_next_scheduled('fp_task_agenda_cleanup_archived')) {
             wp_schedule_event(strtotime('tomorrow 3:00 AM'), 'daily', 'fp_task_agenda_cleanup_archived');
         }
+        
+        // Schedula cron job per verifica post mancanti FP Publisher (ogni giorno alle 4:00 AM)
+        if (!wp_next_scheduled('fp_task_agenda_check_publisher_posts')) {
+            wp_schedule_event(strtotime('tomorrow 4:00 AM'), 'daily', 'fp_task_agenda_check_publisher_posts');
+        }
     }
     
     /**
@@ -290,6 +305,12 @@ class Plugin {
         $timestamp_cleanup = wp_next_scheduled('fp_task_agenda_cleanup_archived');
         if ($timestamp_cleanup) {
             wp_unschedule_event($timestamp_cleanup, 'fp_task_agenda_cleanup_archived');
+        }
+        
+        // Rimuovi cron job verifica post mancanti FP Publisher
+        $timestamp_publisher = wp_next_scheduled('fp_task_agenda_check_publisher_posts');
+        if ($timestamp_publisher) {
+            wp_unschedule_event($timestamp_publisher, 'fp_task_agenda_check_publisher_posts');
         }
         
         flush_rewrite_rules();
