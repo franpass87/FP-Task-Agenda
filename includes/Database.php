@@ -439,15 +439,21 @@ class Database {
     
     /**
      * Elimina un task (soft delete - imposta deleted_at)
+     * Gli admin (manage_options) possono eliminare qualsiasi task, anche creato dalla sync Publisher.
      */
     public static function delete_task($id) {
         global $wpdb;
         
         $table_name = self::get_table_name();
         
-        // Verifica che il task esista e appartenga all'utente corrente
         $task = self::get_task($id);
-        if (!$task || $task->user_id != get_current_user_id()) {
+        if (!$task && current_user_can('manage_options')) {
+            $task = self::get_task_by_id($id, false);
+        }
+        if (!$task) {
+            return new \WP_Error('not_found', __('Task non trovato', 'fp-task-agenda'));
+        }
+        if ($task->user_id != get_current_user_id() && !current_user_can('manage_options')) {
             return new \WP_Error('not_found', __('Task non trovato', 'fp-task-agenda'));
         }
         
@@ -469,15 +475,21 @@ class Database {
     
     /**
      * Ripristina un task archiviato
+     * Gli admin (manage_options) possono ripristinare qualsiasi task.
      */
     public static function restore_task($id) {
         global $wpdb;
         
         $table_name = self::get_table_name();
         
-        // Verifica che il task archiviato esista e appartenga all'utente corrente
         $task = self::get_archived_task($id);
-        if (!$task || $task->user_id != get_current_user_id()) {
+        if (!$task && current_user_can('manage_options')) {
+            $task = self::get_task_by_id($id, true);
+        }
+        if (!$task) {
+            return new \WP_Error('not_found', __('Task archiviato non trovato', 'fp-task-agenda'));
+        }
+        if ($task->user_id != get_current_user_id() && !current_user_can('manage_options')) {
             return new \WP_Error('not_found', __('Task archiviato non trovato', 'fp-task-agenda'));
         }
         
@@ -499,15 +511,21 @@ class Database {
     
     /**
      * Elimina definitivamente un task (hard delete)
+     * Gli admin (manage_options) possono eliminare definitivamente qualsiasi task.
      */
     public static function permanently_delete_task($id) {
         global $wpdb;
         
         $table_name = self::get_table_name();
         
-        // Verifica che il task esista e appartenga all'utente corrente
         $task = self::get_archived_task($id);
-        if (!$task || $task->user_id != get_current_user_id()) {
+        if (!$task && current_user_can('manage_options')) {
+            $task = self::get_task_by_id($id, true);
+        }
+        if (!$task) {
+            return new \WP_Error('not_found', __('Task non trovato', 'fp-task-agenda'));
+        }
+        if ($task->user_id != get_current_user_id() && !current_user_can('manage_options')) {
             return new \WP_Error('not_found', __('Task non trovato', 'fp-task-agenda'));
         }
         
@@ -559,10 +577,10 @@ class Database {
         
         $args = wp_parse_args($args, $defaults);
         
-        $where = array(
-            "user_id = " . get_current_user_id(),
-            "deleted_at IS NOT NULL"
-        );
+        $where = array("deleted_at IS NOT NULL");
+        if (!current_user_can('manage_options')) {
+            $where[] = "user_id = " . absint(get_current_user_id());
+        }
         
         if (!empty($args['search'])) {
             $search_term = '%' . $wpdb->esc_like($args['search']) . '%';
@@ -591,10 +609,10 @@ class Database {
         
         $table_name = self::get_table_name();
         
-        $where = array(
-            "user_id = " . get_current_user_id(),
-            "deleted_at IS NOT NULL"
-        );
+        $where = array("deleted_at IS NOT NULL");
+        if (!current_user_can('manage_options')) {
+            $where[] = "user_id = " . absint(get_current_user_id());
+        }
         
         if (!empty($args['search'])) {
             $search_term = '%' . $wpdb->esc_like($args['search']) . '%';
@@ -644,7 +662,7 @@ class Database {
     }
     
     /**
-     * Ottiene un singolo task (esclude archiviati)
+     * Ottiene un singolo task (esclude archiviati). Per l'utente corrente; gli admin vedono qualsiasi task.
      */
     public static function get_task($id) {
         global $wpdb;
@@ -656,8 +674,28 @@ class Database {
             absint($id),
             get_current_user_id()
         ));
+        if (!$task && current_user_can('manage_options')) {
+            $task = self::get_task_by_id($id, false);
+        }
         
         return $task;
+    }
+    
+    /**
+     * Ottiene un task per ID (senza filtro utente). Usato da admin per eliminare/ripristinare qualsiasi task.
+     *
+     * @param int  $id            ID task
+     * @param bool $deleted_only  true = solo task archiviati (deleted_at IS NOT NULL)
+     * @return object|null
+     */
+    public static function get_task_by_id($id, $deleted_only = false) {
+        global $wpdb;
+        $table_name = self::get_table_name();
+        $deleted_cond = $deleted_only ? 'AND deleted_at IS NOT NULL' : 'AND deleted_at IS NULL';
+        return $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table_name WHERE id = %d {$deleted_cond}",
+            absint($id)
+        ));
     }
     
     /**
@@ -681,10 +719,11 @@ class Database {
         
         $args = wp_parse_args($args, $defaults);
         
-        $where = array(
-            "user_id = " . get_current_user_id(),
-            "deleted_at IS NULL"
-        );
+        // Gli admin vedono tutte le task (anche quelle create dalla sync Publisher con altro user_id)
+        $where = array("deleted_at IS NULL");
+        if (!current_user_can('manage_options')) {
+            $where[] = "user_id = " . absint(get_current_user_id());
+        }
         
         if ($args['status'] !== 'all') {
             $where[] = $wpdb->prepare("status = %s", $args['status']);
@@ -806,10 +845,10 @@ class Database {
         
         $args = wp_parse_args($args, $defaults);
         
-        $where = array(
-            "user_id = " . get_current_user_id(),
-            "deleted_at IS NULL"
-        );
+        $where = array("deleted_at IS NULL");
+        if (!current_user_can('manage_options')) {
+            $where[] = "user_id = " . absint(get_current_user_id());
+        }
         
         if ($args['status'] !== 'all') {
             $where[] = $wpdb->prepare("status = %s", $args['status']);

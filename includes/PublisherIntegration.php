@@ -482,14 +482,27 @@ class PublisherIntegration {
             $now_timestamp = time();
             $days_until_next = floor(($next_post_timestamp - $now_timestamp) / (60 * 60 * 24));
             
-            // Logica basata su quanto visto nell'interfaccia:
-            // - "🔴 Urgente" quando mancano pochi giorni (es. 3-4 giorni)
-            // - "🟡 Attenzione" quando mancano più giorni ma comunque vicino (es. 7-14 giorni)
-            if ($days_until_next <= 4) {
-                $is_urgent = true;
-                $has_attention = true;
-            } elseif ($days_until_next <= 14) {
-                $has_attention = true;
+            // Se il target mensile è già raggiunto, stato OK su Publisher → non creare task
+            $target_reached = true;
+            if ($target_posts > 0 && $posts_published < $target_posts) {
+                $target_reached = false;
+            }
+            if ($target_reels > 0 && $reels_published < $target_reels) {
+                $target_reached = false;
+            }
+            if ($target_reached && ($target_posts > 0 || $target_reels > 0)) {
+                $has_attention = false;
+                $is_urgent = false;
+            } else {
+                // Logica basata su quanto visto nell'interfaccia:
+                // - "🔴 Urgente" quando mancano pochi giorni (es. 3-4 giorni)
+                // - "🟡 Attenzione" quando mancano più giorni ma comunque vicino (es. 7-14 giorni)
+                if ($days_until_next <= 4) {
+                    $is_urgent = true;
+                    $has_attention = true;
+                } elseif ($days_until_next <= 14) {
+                    $has_attention = true;
+                }
             }
         } else {
             // Nessun post programmato - verifica se l'ultimo post è troppo vecchio
@@ -513,8 +526,13 @@ class PublisherIntegration {
                 }
             } else {
                 // Nessun post social trovato - potrebbe essere un problema se ci sono target configurati
+                // Ma non creare task se il target mensile è già raggiunto (stato OK su Publisher)
                 if ($target_posts > 0 || $target_reels > 0) {
-                    $has_attention = true;
+                    $target_reached = ($target_posts <= 0 || $posts_published >= $target_posts)
+                        && ($target_reels <= 0 || $reels_published >= $target_reels);
+                    if (!$target_reached) {
+                        $has_attention = true;
+                    }
                 }
             }
         }
@@ -606,12 +624,25 @@ class PublisherIntegration {
             $current_month_end
         ));
         
+        // Conta articoli già programmati per il mese (scheduled) - su Publisher = OK, non creare task
+        $articles_scheduled_this_month = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$jobs_table_safe} 
+            WHERE remote_site_id = %d 
+            AND post_type = 'article'
+            AND status IN ('pending', 'scheduled')
+            AND scheduled_at >= %s
+            AND scheduled_at <= %s",
+            absint($workspace_id),
+            $current_month_start,
+            $current_month_end
+        ));
+        
         // Verifica se è "0/1" (caso specifico per WordPress)
-        // Crea task SOLO se: target = 1 e articoli pubblicati = 0
+        // Crea task SOLO se: target = 1, articoli pubblicati = 0 E nessun articolo già programmato per il mese
         $needs_article = false;
         $description = '';
         
-        if ($target_articles == 1 && $articles_published == 0) {
+        if ($target_articles == 1 && $articles_published == 0 && $articles_scheduled_this_month == 0) {
             $needs_article = true;
             $description = __('Avanzamento articoli WordPress: 0/1. È necessario pubblicare l\'articolo previsto per il mese corrente.', 'fp-task-agenda');
             
