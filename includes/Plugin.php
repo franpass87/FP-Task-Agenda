@@ -44,9 +44,13 @@ class Plugin {
         // Hook per cron job verifica post mancanti FP Publisher
         add_action('fp_task_agenda_check_publisher_posts', array($this, 'check_publisher_missing_posts'));
         
+        // REST API
+        add_action('rest_api_init', array(RestApi::class, 'register_routes'));
+        
         // Carica admin solo se siamo nell'admin
         if (is_admin()) {
             Admin::get_instance();
+            Settings::get_instance();
         }
     }
     
@@ -242,17 +246,51 @@ class Plugin {
     }
     
     /**
-     * Pulizia task archiviati vecchi di 30 giorni
+     * Restituisce items_per_page dalle impostazioni
+     */
+    public static function get_items_per_page() {
+        $settings = get_option('fp_task_agenda_settings', array());
+        return isset($settings['items_per_page']) ? max(10, min(100, (int) $settings['items_per_page'])) : 20;
+    }
+    
+    /**
+     * Restituisce auto_cleanup_days dalle impostazioni
+     */
+    public static function get_auto_cleanup_days() {
+        $settings = get_option('fp_task_agenda_settings', array());
+        return isset($settings['auto_cleanup_days']) ? max(7, min(90, (int) $settings['auto_cleanup_days'])) : 30;
+    }
+    
+    /**
+     * Verifica se la sincronizzazione FP Publisher è abilitata
+     */
+    public static function get_publisher_sync_enabled() {
+        $settings = get_option('fp_task_agenda_settings', array());
+        return isset($settings['publisher_sync_enabled']) ? (bool) $settings['publisher_sync_enabled'] : true;
+    }
+    
+    /**
+     * Verifica se mostrare i task completati nelle liste
+     */
+    public static function get_show_completed() {
+        $settings = get_option('fp_task_agenda_settings', array());
+        return isset($settings['show_completed']) ? (bool) $settings['show_completed'] : true;
+    }
+    
+    /**
+     * Pulizia task archiviati
      */
     public function cleanup_archived_tasks() {
-        // Elimina definitivamente i task archiviati da più di 30 giorni
-        Database::cleanup_all_archived_tasks(30);
+        Database::cleanup_all_archived_tasks(self::get_auto_cleanup_days());
     }
     
     /**
      * Verifica post mancanti in FP Publisher e crea task automaticamente
      */
     public function check_publisher_missing_posts() {
+        if (!self::get_publisher_sync_enabled()) {
+            return;
+        }
         PublisherIntegration::check_missing_posts();
     }
     
@@ -268,7 +306,8 @@ class Plugin {
             update_option('fp_task_agenda_settings', array(
                 'items_per_page' => 20,
                 'show_completed' => true,
-                'auto_cleanup_days' => 30
+                'auto_cleanup_days' => 30,
+                'publisher_sync_enabled' => true
             ));
         }
         

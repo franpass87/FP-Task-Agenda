@@ -60,50 +60,49 @@ if (!defined('ABSPATH')) {
     $archived_count = isset($archived_count) ? $archived_count : \FP\TaskAgenda\Database::count_archived_tasks();
     if ($archived_count > 0): 
     ?>
-    <div class="notice notice-info" style="margin: 20px 0; padding: 15px; border-left: 4px solid #2271b1; background: #f0f6fc;">
-        <p style="margin: 0; display: flex; align-items: center; gap: 10px;">
-            <span class="dashicons dashicons-archive" style="color: #2271b1;"></span>
-            <strong><?php echo esc_html(sprintf(__('Hai %d task archiviati che possono essere ripristinati.', 'fp-task-agenda'), $archived_count)); ?></strong>
-            <a href="<?php echo esc_url(admin_url('admin.php?page=fp-task-agenda-archived')); ?>" class="button button-primary" style="margin-left: auto;">
-                <?php echo esc_html__('Vedi Task Archiviati', 'fp-task-agenda'); ?>
-            </a>
-        </p>
+    <div class="fp-archived-notice">
+        <span class="fp-archived-notice-icon dashicons dashicons-archive"></span>
+        <span class="fp-archived-notice-text">
+            <?php echo esc_html(sprintf(__('Hai %d task archiviati che possono essere ripristinati.', 'fp-task-agenda'), $archived_count)); ?>
+        </span>
+        <a href="<?php echo esc_url(admin_url('admin.php?page=fp-task-agenda-archived')); ?>" class="fp-archived-notice-btn">
+            <?php echo esc_html__('Vedi Task Archiviati', 'fp-task-agenda'); ?>
+            <span class="dashicons dashicons-arrow-right-alt2"></span>
+        </a>
     </div>
     <?php endif; ?>
     
     <!-- Modal Seleziona Template -->
     <?php if (!empty($templates)): ?>
-    <div id="fp-template-select-modal" class="fp-modal" style="display: none;">
+    <div id="fp-template-select-modal" class="fp-modal" role="dialog" aria-modal="true" aria-labelledby="fp-template-select-modal-title" style="display: none;">
         <div class="fp-modal-content" style="max-width: 600px;">
             <div class="fp-modal-header">
-                <h2><?php echo esc_html__('Seleziona Template', 'fp-task-agenda'); ?></h2>
-                <button type="button" class="fp-modal-close">&times;</button>
+                <h2 id="fp-template-select-modal-title"><?php echo esc_html__('Seleziona Template', 'fp-task-agenda'); ?></h2>
+                <button type="button" class="fp-modal-close" aria-label="<?php echo esc_attr__('Chiudi', 'fp-task-agenda'); ?>">&times;</button>
             </div>
             <div class="fp-modal-body">
                 <p class="description" style="margin-bottom: 20px;">
                     <?php echo esc_html__('Scegli un template per creare rapidamente un nuovo task:', 'fp-task-agenda'); ?>
                 </p>
-                <div class="fp-templates-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
+                <div class="fp-templates-grid">
                     <?php foreach ($templates as $template): ?>
                         <?php
                         $priority_class = \FP\TaskAgenda\Task::get_priority_class($template->priority);
                         $priorities = \FP\TaskAgenda\Task::get_priorities();
                         ?>
-                        <div class="fp-template-card" data-template-id="<?php echo esc_attr($template->id); ?>" style="border: 1px solid #dee2e6; border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.2s ease; background: white;">
-                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
-                                <strong style="font-size: 14px; color: #212529;"><?php echo esc_html($template->name); ?></strong>
-                                <span class="fp-priority-badge fp-priority-<?php echo esc_attr($template->priority); ?>" style="font-size: 10px; padding: 3px 8px;">
+                        <div class="fp-template-card" data-template-id="<?php echo esc_attr($template->id); ?>">
+                            <div class="fp-template-card-header">
+                                <strong class="fp-template-card-name"><?php echo esc_html($template->name); ?></strong>
+                                <span class="fp-priority-badge fp-priority-<?php echo esc_attr($template->priority); ?> fp-template-priority">
                                     <?php echo esc_html($priorities[$template->priority] ?? $template->priority); ?>
                                 </span>
                             </div>
-                            <div style="font-size: 13px; color: #6c757d; margin-bottom: 8px;">
-                                <?php echo esc_html($template->title); ?>
-                            </div>
+                            <div class="fp-template-card-title"><?php echo esc_html($template->title); ?></div>
                             <?php if ($template->client_id): 
                                 $client = \FP\TaskAgenda\Client::get($template->client_id);
                             ?>
-                                <div style="font-size: 12px; color: #868e96;">
-                                    <span class="dashicons dashicons-businessman" style="font-size: 14px; width: 14px; height: 14px;"></span>
+                                <div class="fp-template-card-client">
+                                    <span class="dashicons dashicons-businessman"></span>
                                     <?php echo $client ? esc_html($client->name) : ''; ?>
                                 </div>
                             <?php endif; ?>
@@ -119,15 +118,31 @@ if (!defined('ABSPATH')) {
     <div class="fp-modal-backdrop" id="fp-template-select-modal-backdrop" style="display: none;"></div>
     <?php endif; ?>
     
-    <!-- Toolbar con View Toggle -->
+    <!-- Toolbar: vista + filtri attivi -->
     <div class="fp-toolbar">
+        <div class="fp-toolbar-left">
+            <?php 
+            $active_filters_count = 0;
+            if ($current_status !== 'all') $active_filters_count++;
+            if ($current_priority !== 'all') $active_filters_count++;
+            if ($current_client !== 'all') $active_filters_count++;
+            if (!empty($search)) $active_filters_count++;
+            if ($active_filters_count > 0): 
+            ?>
+            <span class="fp-active-filters-badge">
+                <span class="dashicons dashicons-filter"></span>
+                <?php echo esc_html(sprintf(_n('%d filtro attivo', '%d filtri attivi', $active_filters_count, 'fp-task-agenda'), $active_filters_count)); ?>
+            </span>
+            <?php endif; ?>
+        </div>
         <div class="fp-toolbar-right">
-            <!-- Toggle Vista -->
-            <div class="fp-view-toggle">
-                <button type="button" class="page-title-action fp-view-btn fp-view-table active" data-view="table">
+            <div class="fp-view-toggle" role="group" aria-label="<?php esc_attr_e('Tipo di vista', 'fp-task-agenda'); ?>">
+                <button type="button" class="fp-view-btn fp-view-table active" data-view="table" title="<?php esc_attr_e('Vista tabella', 'fp-task-agenda'); ?>">
+                    <span class="dashicons dashicons-list-view"></span>
                     <?php echo esc_html__('Tabella', 'fp-task-agenda'); ?>
                 </button>
-                <button type="button" class="page-title-action fp-view-btn fp-view-kanban" data-view="kanban">
+                <button type="button" class="fp-view-btn fp-view-kanban" data-view="kanban" title="<?php esc_attr_e('Vista Kanban', 'fp-task-agenda'); ?>">
+                    <span class="dashicons dashicons-grid-view"></span>
                     <?php echo esc_html__('Kanban', 'fp-task-agenda'); ?>
                 </button>
             </div>
@@ -140,7 +155,7 @@ if (!defined('ABSPATH')) {
     $completion_percentage = $stats['all'] > 0 ? round(($stats['completed'] / $stats['all']) * 100) : 0;
     ?>
     <div class="fp-task-stats">
-        <a href="<?php echo esc_url(add_query_arg(array('status' => 'all'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-card-link <?php echo ($current_status === 'all' && $current_priority === 'all') ? 'fp-stat-active' : ''; ?>">
+        <a href="<?php echo esc_url(add_query_arg(array('status' => 'all'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-card-link fp-stat-all <?php echo ($current_status === 'all' && $current_priority === 'all') ? 'fp-stat-active' : ''; ?>" data-stat="all">
             <span class="fp-stat-label">
                 <span class="dashicons dashicons-list-view"></span>
                 <?php echo esc_html__('Totali', 'fp-task-agenda'); ?>
@@ -153,14 +168,14 @@ if (!defined('ABSPATH')) {
             <span class="fp-stat-percentage"><?php echo esc_html($completion_percentage); ?>% completato</span>
             <?php endif; ?>
         </a>
-        <a href="<?php echo esc_url(add_query_arg(array('status' => 'pending'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-pending fp-stat-card-link <?php echo $current_status === 'pending' ? 'fp-stat-active' : ''; ?>">
+        <a href="<?php echo esc_url(add_query_arg(array('status' => 'pending'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-pending fp-stat-card-link <?php echo $current_status === 'pending' ? 'fp-stat-active' : ''; ?>" data-stat="pending">
             <span class="fp-stat-label">
                 <span class="dashicons dashicons-clock"></span>
                 <?php echo esc_html__('Da fare', 'fp-task-agenda'); ?>
             </span>
             <span class="fp-stat-value"><?php echo esc_html($stats['pending']); ?></span>
         </a>
-        <a href="<?php echo esc_url(add_query_arg(array('status' => 'in_progress'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-progress fp-stat-card-link <?php echo $current_status === 'in_progress' ? 'fp-stat-active' : ''; ?>">
+        <a href="<?php echo esc_url(add_query_arg(array('status' => 'in_progress'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-progress fp-stat-card-link <?php echo $current_status === 'in_progress' ? 'fp-stat-active' : ''; ?>" data-stat="in_progress">
             <span class="fp-stat-label">
                 <span class="dashicons dashicons-update"></span>
                 <?php echo esc_html__('In corso', 'fp-task-agenda'); ?>
@@ -168,7 +183,7 @@ if (!defined('ABSPATH')) {
             <span class="fp-stat-value"><?php echo esc_html($stats['in_progress']); ?></span>
         </a>
         <?php if ($stats['due_soon'] > 0): ?>
-        <a href="<?php echo esc_url(add_query_arg(array('status' => 'all', 'orderby' => 'due_date', 'order' => 'ASC'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-due-soon fp-stat-card-link">
+        <a href="<?php echo esc_url(add_query_arg(array('status' => 'all', 'orderby' => 'due_date', 'order' => 'ASC'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-due-soon fp-stat-card-link" data-stat="due_soon">
             <span class="fp-stat-label">
                 <span class="dashicons dashicons-warning"></span>
                 <?php echo esc_html__('In scadenza', 'fp-task-agenda'); ?>
@@ -176,7 +191,7 @@ if (!defined('ABSPATH')) {
             <span class="fp-stat-value"><?php echo esc_html($stats['due_soon']); ?></span>
         </a>
         <?php endif; ?>
-        <a href="<?php echo esc_url(add_query_arg(array('status' => 'completed'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-completed fp-stat-card-link <?php echo $current_status === 'completed' ? 'fp-stat-active' : ''; ?>">
+        <a href="<?php echo esc_url(add_query_arg(array('status' => 'completed'), remove_query_arg('paged'))); ?>" class="fp-stat-card fp-stat-completed fp-stat-card-link <?php echo $current_status === 'completed' ? 'fp-stat-active' : ''; ?>" data-stat="completed">
             <span class="fp-stat-label">
                 <span class="dashicons dashicons-yes-alt"></span>
                 <?php echo esc_html__('Completati', 'fp-task-agenda'); ?>
@@ -199,20 +214,25 @@ if (!defined('ABSPATH')) {
             <input type="hidden" name="page" value="fp-task-agenda">
             
             <div class="fp-filter-group">
-                <label class="fp-filter-label"><?php echo esc_html__('Stato', 'fp-task-agenda'); ?></label>
+                <label class="fp-filter-label"><?php echo esc_html__('Stato', 'fp-task-agenda'); ?>
+                <?php if ($current_status !== 'all'): ?>
+                    <span class="fp-filter-badge fp-filter-badge-status"><?php echo esc_html($current_status === 'in_progress' ? __('In corso', 'fp-task-agenda') : ucfirst($current_status)); ?></span>
+                <?php endif; ?>
+                </label>
                 <select name="status" id="filter-status" class="fp-filter-select">
                     <option value="all" <?php selected($current_status, 'all'); ?>><?php echo esc_html__('Tutti', 'fp-task-agenda'); ?></option>
                     <option value="pending" <?php selected($current_status, 'pending'); ?>><?php echo esc_html__('Da fare', 'fp-task-agenda'); ?></option>
                     <option value="in_progress" <?php selected($current_status, 'in_progress'); ?>><?php echo esc_html__('In corso', 'fp-task-agenda'); ?></option>
                     <option value="completed" <?php selected($current_status, 'completed'); ?>><?php echo esc_html__('Completati', 'fp-task-agenda'); ?></option>
                 </select>
-                <?php if ($current_status !== 'all'): ?>
-                    <span class="fp-filter-badge"><?php echo esc_html(ucfirst($current_status === 'in_progress' ? 'In corso' : $current_status)); ?></span>
-                <?php endif; ?>
             </div>
             
             <div class="fp-filter-group">
-                <label class="fp-filter-label"><?php echo esc_html__('Priorità', 'fp-task-agenda'); ?></label>
+                <label class="fp-filter-label"><?php echo esc_html__('Priorità', 'fp-task-agenda'); ?>
+                <?php if ($current_priority !== 'all'): ?>
+                    <span class="fp-filter-badge fp-priority-<?php echo esc_attr($current_priority); ?>"><?php echo esc_html(ucfirst($current_priority)); ?></span>
+                <?php endif; ?>
+                </label>
                 <select name="priority" id="filter-priority" class="fp-filter-select">
                     <option value="all" <?php selected($current_priority, 'all'); ?>><?php echo esc_html__('Tutte', 'fp-task-agenda'); ?></option>
                     <option value="low" <?php selected($current_priority, 'low'); ?>><?php echo esc_html__('Bassa', 'fp-task-agenda'); ?></option>
@@ -220,13 +240,23 @@ if (!defined('ABSPATH')) {
                     <option value="high" <?php selected($current_priority, 'high'); ?>><?php echo esc_html__('Alta', 'fp-task-agenda'); ?></option>
                     <option value="urgent" <?php selected($current_priority, 'urgent'); ?>><?php echo esc_html__('Urgente', 'fp-task-agenda'); ?></option>
                 </select>
-                <?php if ($current_priority !== 'all'): ?>
-                    <span class="fp-filter-badge fp-priority-<?php echo esc_attr($current_priority); ?>"><?php echo esc_html(ucfirst($current_priority)); ?></span>
-                <?php endif; ?>
             </div>
             
             <div class="fp-filter-group">
-                <label class="fp-filter-label"><?php echo esc_html__('Cliente', 'fp-task-agenda'); ?></label>
+                <label class="fp-filter-label"><?php echo esc_html__('Cliente', 'fp-task-agenda'); ?>
+                <?php 
+                if ($current_client !== 'all'): 
+                    $filtered_client_name = '';
+                    foreach ($clients as $c) {
+                        if ((string) $c->id === (string) $current_client) {
+                            $filtered_client_name = $c->name;
+                            break;
+                        }
+                    }
+                ?>
+                    <span class="fp-filter-badge fp-filter-badge-client"><?php echo esc_html($filtered_client_name ?: __('Cliente', 'fp-task-agenda')); ?></span>
+                <?php endif; ?>
+                </label>
                 <select name="client_id" id="filter-client" class="fp-filter-select">
                     <option value="all" <?php selected($current_client, 'all'); ?>><?php echo esc_html__('Tutti', 'fp-task-agenda'); ?></option>
                     <?php foreach ($clients as $client): ?>
@@ -235,14 +265,11 @@ if (!defined('ABSPATH')) {
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <?php if ($current_client !== 'all'): ?>
-                    <span class="fp-filter-badge"><?php echo esc_html(get_post_meta($current_client, 'name', true) ?: $current_client); ?></span>
-                <?php endif; ?>
             </div>
             
             <div class="fp-filter-group fp-filter-search">
                 <label class="fp-filter-label"><?php echo esc_html__('Cerca', 'fp-task-agenda'); ?></label>
-                <input type="search" name="s" value="<?php echo esc_attr($search); ?>" placeholder="<?php echo esc_attr__('Cerca task...', 'fp-task-agenda'); ?>" class="fp-search-input">
+                <input type="search" name="s" id="fp-search-input" value="<?php echo esc_attr($search); ?>" placeholder="<?php echo esc_attr__('Cerca task...', 'fp-task-agenda'); ?>" class="fp-search-input">
             </div>
             
             <div class="fp-filter-actions">
@@ -256,7 +283,7 @@ if (!defined('ABSPATH')) {
     </div>
     
     <!-- Lista Task - Vista Tabella -->
-    <div class="fp-tasks-container fp-view-table-view">
+    <div class="fp-tasks-container fp-view-table-view" id="fp-tasks-tbody-wrapper" data-per-page="<?php echo esc_attr($per_page); ?>" data-orderby="<?php echo esc_attr($orderby); ?>" data-order="<?php echo esc_attr($order); ?>">
         <?php if (empty($tasks)): ?>
             <div class="fp-empty-state">
                 <div class="fp-empty-state-icon">
@@ -284,8 +311,8 @@ if (!defined('ABSPATH')) {
             </div>
         <?php else: ?>
             <!-- Bulk Actions -->
-            <div class="tablenav top">
-                <div class="alignleft actions bulkactions">
+            <div class="fp-bulk-actions-bar tablenav top">
+                <div class="fp-bulk-actions-form">
                     <label for="bulk-action-selector-top" class="screen-reader-text"><?php echo esc_html__('Seleziona azione di massa', 'fp-task-agenda'); ?></label>
                     <select name="action" id="bulk-action-selector-top">
                         <option value="-1"><?php echo esc_html__('Azioni di massa', 'fp-task-agenda'); ?></option>
@@ -293,12 +320,11 @@ if (!defined('ABSPATH')) {
                         <option value="pending"><?php echo esc_html__('Marca come da fare', 'fp-task-agenda'); ?></option>
                         <option value="delete"><?php echo esc_html__('Elimina', 'fp-task-agenda'); ?></option>
                     </select>
-                    <button type="button" class="button action" id="doaction"><?php echo esc_html__('Applica', 'fp-task-agenda'); ?></button>
+                    <button type="button" class="button button-primary" id="doaction"><?php echo esc_html__('Applica', 'fp-task-agenda'); ?></button>
                 </div>
-                <div class="alignleft actions">
-                    <?php echo sprintf(__('%d task trovati', 'fp-task-agenda'), $total_tasks); ?>
+                <div class="fp-tasks-count">
+                    <?php echo esc_html(sprintf(_n('%d task', '%d task', $total_tasks, 'fp-task-agenda'), $total_tasks)); ?>
                 </div>
-                <br class="clear">
             </div>
             
             <table class="wp-list-table widefat fixed striped fp-tasks-table">
@@ -307,7 +333,7 @@ if (!defined('ABSPATH')) {
                         <td class="manage-column column-cb check-column" style="width: 40px;">
                             <input id="cb-select-all" type="checkbox">
                         </td>
-                        <th style="width: 120px;" class="sortable <?php echo ($orderby === 'priority') ? 'sorted ' . strtolower($order) : ''; ?>">
+                        <th scope="col" style="width: 120px;" class="sortable <?php echo esc_attr(($orderby === 'priority') ? 'sorted ' . strtolower($order) : ''); ?>">
                             <?php
                             $order_priority = ($orderby === 'priority' && $order === 'ASC') ? 'DESC' : 'ASC';
                             $url_priority = add_query_arg(array('orderby' => 'priority', 'order' => $order_priority), remove_query_arg(array('paged')));
@@ -317,7 +343,7 @@ if (!defined('ABSPATH')) {
                                 <span class="sorting-indicator"></span>
                             </a>
                         </th>
-                        <th style="width: 150px;" class="sortable <?php echo ($orderby === 'client_id') ? 'sorted ' . strtolower($order) : ''; ?>">
+                        <th scope="col" style="width: 150px;" class="sortable <?php echo esc_attr(($orderby === 'client_id') ? 'sorted ' . strtolower($order) : ''); ?>">
                             <?php
                             $order_client = ($orderby === 'client_id' && $order === 'ASC') ? 'DESC' : 'ASC';
                             $url_client = add_query_arg(array('orderby' => 'client_id', 'order' => $order_client), remove_query_arg(array('paged')));
@@ -327,7 +353,7 @@ if (!defined('ABSPATH')) {
                                 <span class="sorting-indicator"></span>
                             </a>
                         </th>
-                        <th class="sortable <?php echo ($orderby === 'title') ? 'sorted ' . strtolower($order) : ''; ?>">
+                        <th scope="col" class="sortable <?php echo esc_attr(($orderby === 'title') ? 'sorted ' . strtolower($order) : ''); ?>">
                             <?php
                             $order_title = ($orderby === 'title' && $order === 'ASC') ? 'DESC' : 'ASC';
                             $url_title = add_query_arg(array('orderby' => 'title', 'order' => $order_title), remove_query_arg(array('paged')));
@@ -337,7 +363,7 @@ if (!defined('ABSPATH')) {
                                 <span class="sorting-indicator"></span>
                             </a>
                         </th>
-                        <th style="width: 150px;" class="sortable <?php echo ($orderby === 'due_date') ? 'sorted ' . strtolower($order) : ''; ?>">
+                        <th scope="col" style="width: 150px;" class="sortable <?php echo esc_attr(($orderby === 'due_date') ? 'sorted ' . strtolower($order) : ''); ?>">
                             <?php
                             $order_due = ($orderby === 'due_date' && $order === 'ASC') ? 'DESC' : 'ASC';
                             $url_due = add_query_arg(array('orderby' => 'due_date', 'order' => $order_due), remove_query_arg(array('paged')));
@@ -347,10 +373,10 @@ if (!defined('ABSPATH')) {
                                 <span class="sorting-indicator"></span>
                             </a>
                         </th>
-                        <th style="width: 120px;">
+                        <th scope="col" style="width: 120px;">
                             <span><?php echo esc_html__('Ricorrenza', 'fp-task-agenda'); ?></span>
                         </th>
-                        <th style="width: 120px;" class="sortable <?php echo ($orderby === 'status') ? 'sorted ' . strtolower($order) : ''; ?>">
+                        <th scope="col" style="width: 120px;" class="sortable <?php echo esc_attr(($orderby === 'status') ? 'sorted ' . strtolower($order) : ''); ?>">
                             <?php
                             $order_status = ($orderby === 'status' && $order === 'ASC') ? 'DESC' : 'ASC';
                             $url_status = add_query_arg(array('orderby' => 'status', 'order' => $order_status), remove_query_arg(array('paged')));
@@ -360,7 +386,7 @@ if (!defined('ABSPATH')) {
                                 <span class="sorting-indicator"></span>
                             </a>
                         </th>
-                        <th style="width: 140px;" class="sortable <?php echo ($orderby === 'created_at') ? 'sorted ' . strtolower($order) : ''; ?>">
+                        <th scope="col" style="width: 140px;" class="sortable <?php echo esc_attr(($orderby === 'created_at') ? 'sorted ' . strtolower($order) : ''); ?>">
                             <?php
                             $order_created = ($orderby === 'created_at' && $order === 'ASC') ? 'DESC' : 'ASC';
                             $url_created = add_query_arg(array('orderby' => 'created_at', 'order' => $order_created), remove_query_arg(array('paged')));
@@ -370,7 +396,7 @@ if (!defined('ABSPATH')) {
                                 <span class="sorting-indicator"></span>
                             </a>
                         </th>
-                        <th style="width: 150px;"><?php echo esc_html__('Azioni', 'fp-task-agenda'); ?></th>
+                        <th scope="col" style="width: 150px;"><?php echo esc_html__('Azioni', 'fp-task-agenda'); ?></th>
                     </tr>
                 </thead>
                 <tbody id="fp-tasks-list">
@@ -502,10 +528,10 @@ if (!defined('ABSPATH')) {
                             </td>
                             <td>
                                 <div class="fp-task-actions">
-                                    <button type="button" class="button-link fp-edit-task" data-task-id="<?php echo esc_attr($task->id); ?>" title="<?php echo esc_attr__('Modifica', 'fp-task-agenda'); ?>">
+                                    <button type="button" class="button-link fp-edit-task" data-task-id="<?php echo esc_attr($task->id); ?>" title="<?php echo esc_attr__('Modifica', 'fp-task-agenda'); ?>" aria-label="<?php echo esc_attr(sprintf(__('Modifica task: %s', 'fp-task-agenda'), $task->title)); ?>">
                                         <span class="dashicons dashicons-edit"></span>
                                     </button>
-                                    <button type="button" class="button-link delete fp-delete-task" data-task-id="<?php echo esc_attr($task->id); ?>" title="<?php echo esc_attr__('Elimina', 'fp-task-agenda'); ?>">
+                                    <button type="button" class="button-link delete fp-delete-task" data-task-id="<?php echo esc_attr($task->id); ?>" title="<?php echo esc_attr__('Elimina', 'fp-task-agenda'); ?>" aria-label="<?php echo esc_attr(sprintf(__('Elimina task: %s', 'fp-task-agenda'), $task->title)); ?>">
                                         <span class="dashicons dashicons-trash"></span>
                                     </button>
                                 </div>
@@ -538,16 +564,18 @@ if (!defined('ABSPATH')) {
 </div>
 
 <!-- Modal Aggiungi/Modifica Task -->
-<div id="fp-task-modal" class="fp-modal" style="display: none;">
+<div id="fp-task-modal" class="fp-modal" role="dialog" aria-modal="true" aria-labelledby="fp-modal-title" style="display: none;">
     <div class="fp-modal-content">
         <div class="fp-modal-header">
             <h2 id="fp-modal-title"><?php echo esc_html__('Aggiungi Task', 'fp-task-agenda'); ?></h2>
-            <button type="button" class="fp-modal-close">&times;</button>
+            <button type="button" class="fp-modal-close" aria-label="<?php echo esc_attr__('Chiudi', 'fp-task-agenda'); ?>">&times;</button>
         </div>
         <div class="fp-modal-body">
             <form id="fp-task-form">
                 <input type="hidden" id="fp-task-id" name="id" value="">
                 
+                <div class="fp-form-section fp-form-section-main">
+                    <h4 class="fp-form-section-title"><?php echo esc_html__('Dati task', 'fp-task-agenda'); ?></h4>
                 <table class="form-table">
                     <tr>
                         <th scope="row">
@@ -595,6 +623,12 @@ if (!defined('ABSPATH')) {
                             </select>
                         </td>
                     </tr>
+                </table>
+                </div>
+                
+                <div class="fp-form-section fp-form-section-schedule">
+                    <h4 class="fp-form-section-title"><?php echo esc_html__('Scadenza e ricorrenza', 'fp-task-agenda'); ?></h4>
+                <table class="form-table">
                     <tr>
                         <th scope="row">
                             <label for="fp-task-due-date"><?php echo esc_html__('Data di scadenza', 'fp-task-agenda'); ?></label>
@@ -666,6 +700,7 @@ if (!defined('ABSPATH')) {
                         </td>
                     </tr>
                 </table>
+                </div>
             </form>
         </div>
         <div class="fp-modal-footer">
@@ -724,7 +759,6 @@ jQuery(document).ready(function($) {
             var $this = $(this);
             var originalText = $this.html();
             
-            console.log('FP Task Agenda: Click sul pulsante Verifica Post FP Publisher (fallback)');
             
             // Disabilita il pulsante e mostra loading
             $this.prop('disabled', true).html('<span class="dashicons dashicons-update" style="animation: fp-spin 1s linear infinite;"></span> Verifica in corso...');
@@ -738,7 +772,6 @@ jQuery(document).ready(function($) {
                     nonce: typeof fpTaskAgenda !== 'undefined' ? fpTaskAgenda.nonce : ''
                 },
                 success: function(response) {
-                    console.log('FP Task Agenda: Risposta AJAX ricevuta', response);
                     
                     if (response.success) {
                         var message = response.data.message || 'Verifica completata';
@@ -757,7 +790,6 @@ jQuery(document).ready(function($) {
                         }
                     } else {
                         var errorMsg = response.data && response.data.message ? response.data.message : 'Errore durante la verifica';
-                        console.error('FP Task Agenda: Errore nella risposta', response);
                         alert(errorMsg); // Fallback semplice
                     }
                     
@@ -765,18 +797,12 @@ jQuery(document).ready(function($) {
                     $this.prop('disabled', false).html(originalText);
                 },
                 error: function(xhr, status, error) {
-                    console.error('FP Task Agenda: Errore AJAX', {
-                        status: status,
-                        error: error,
-                        response: xhr.responseText
-                    });
                     alert('Errore di connessione durante la verifica: ' + error);
                     $this.prop('disabled', false).html(originalText);
                 }
             });
         });
         
-        console.log('FP Task Agenda: Handler fallback aggiunto al pulsante Verifica Post FP Publisher');
     }
 });
 </script>

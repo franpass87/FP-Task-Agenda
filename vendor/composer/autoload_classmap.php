@@ -11,6 +11,9 @@ return array(
     'FP\\TaskAgenda\\Client' => $baseDir . '/includes/Client.php',
     'FP\\TaskAgenda\\Database' => $baseDir . '/includes/Database.php',
     'FP\\TaskAgenda\\Plugin' => $baseDir . '/includes/Plugin.php',
+    'FP\\TaskAgenda\\PublisherIntegration' => $baseDir . '/includes/PublisherIntegration.php',
+    'FP\\TaskAgenda\\RestApi' => $baseDir . '/includes/RestApi.php',
+    'FP\\TaskAgenda\\Settings' => $baseDir . '/includes/Settings.php',
     'FP\\TaskAgenda\\Task' => $baseDir . '/includes/Task.php',
     'FP\\TaskAgenda\\Template' => $baseDir . '/includes/Template.php',
 );

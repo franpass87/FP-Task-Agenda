@@ -118,11 +118,11 @@ if (!defined('ABSPATH')) {
 </div>
 
 <!-- Modal Aggiungi/Modifica Template -->
-<div id="fp-template-modal" class="fp-modal" style="display: none;">
+<div id="fp-template-modal" class="fp-modal" role="dialog" aria-modal="true" aria-labelledby="fp-template-modal-title" style="display: none;">
     <div class="fp-modal-content">
         <div class="fp-modal-header">
             <h2 id="fp-template-modal-title"><?php echo esc_html__('Aggiungi Template', 'fp-task-agenda'); ?></h2>
-            <button type="button" class="fp-modal-close">&times;</button>
+            <button type="button" class="fp-modal-close" aria-label="<?php echo esc_attr__('Chiudi', 'fp-task-agenda'); ?>">&times;</button>
         </div>
         <div class="fp-modal-body">
             <form id="fp-template-form">
@@ -283,7 +283,7 @@ jQuery(document).ready(function($) {
         }
         
         var templateId = $(this).data('template-id');
-        var $row = $(this).closest('.fp-template-row');
+        var $row = $(this).closest('tr.fp-task-row');
         
         $.ajax({
             url: fpTaskAgenda.ajaxUrl,

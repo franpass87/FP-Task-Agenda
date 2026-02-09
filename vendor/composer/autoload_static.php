@@ -26,6 +26,9 @@ class ComposerStaticInit471acc4f848ce19bc6c610bea70c650c
         'FP\\TaskAgenda\\Client' => __DIR__ . '/../..' . '/includes/Client.php',
         'FP\\TaskAgenda\\Database' => __DIR__ . '/../..' . '/includes/Database.php',
         'FP\\TaskAgenda\\Plugin' => __DIR__ . '/../..' . '/includes/Plugin.php',
+        'FP\\TaskAgenda\\PublisherIntegration' => __DIR__ . '/../..' . '/includes/PublisherIntegration.php',
+        'FP\\TaskAgenda\\RestApi' => __DIR__ . '/../..' . '/includes/RestApi.php',
+        'FP\\TaskAgenda\\Settings' => __DIR__ . '/../..' . '/includes/Settings.php',
         'FP\\TaskAgenda\\Task' => __DIR__ . '/../..' . '/includes/Task.php',
         'FP\\TaskAgenda\\Template' => __DIR__ . '/../..' . '/includes/Template.php',
     );

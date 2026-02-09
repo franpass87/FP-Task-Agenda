@@ -714,7 +714,8 @@ class Database {
             'page' => 1,
             'orderby' => 'created_at',
             'order' => 'DESC',
-            'search' => ''
+            'search' => '',
+            'show_completed' => true // da impostazioni: false = nasconde task completati quando status=all
         );
         
         $args = wp_parse_args($args, $defaults);
@@ -727,6 +728,9 @@ class Database {
         
         if ($args['status'] !== 'all') {
             $where[] = $wpdb->prepare("status = %s", $args['status']);
+        } elseif (isset($args['show_completed']) && !$args['show_completed']) {
+            // Nascondi task completati quando show_completed è false
+            $where[] = "status != 'completed'";
         }
         
         if ($args['priority'] !== 'all') {
@@ -840,7 +844,8 @@ class Database {
             'status' => 'all',
             'priority' => 'all',
             'client_id' => 'all',
-            'search' => ''
+            'search' => '',
+            'show_completed' => true
         );
         
         $args = wp_parse_args($args, $defaults);
@@ -852,6 +857,8 @@ class Database {
         
         if ($args['status'] !== 'all') {
             $where[] = $wpdb->prepare("status = %s", $args['status']);
+        } elseif (isset($args['show_completed']) && !$args['show_completed']) {
+            $where[] = "status != 'completed'";
         }
         
         if ($args['priority'] !== 'all') {

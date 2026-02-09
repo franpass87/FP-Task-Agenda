@@ -9,43 +9,55 @@ if (!defined('ABSPATH')) {
 ?>
 
 <div class="wrap fp-task-agenda-wrap">
-    <h1 class="wp-heading-inline">
-        <?php echo esc_html__('Gestione Clienti', 'fp-task-agenda'); ?>
-    </h1>
-    
-    <button type="button" class="page-title-action" id="fp-add-client-btn">
-        <?php echo esc_html__('Aggiungi Cliente', 'fp-task-agenda'); ?>
-    </button>
-    
-    <button type="button" class="page-title-action" id="fp-sync-clients-btn">
-        <?php echo esc_html__('Sincronizza da FP Publisher', 'fp-task-agenda'); ?>
-    </button>
+    <!-- Header -->
+    <div class="fp-page-header">
+        <div class="fp-header-left">
+            <h1 class="wp-heading-inline" style="margin: 0;">
+                <?php echo esc_html__('Gestione Clienti', 'fp-task-agenda'); ?>
+            </h1>
+        </div>
+        <div class="fp-header-actions">
+            <button type="button" class="fp-btn fp-btn-primary" id="fp-add-client-btn">
+                <span class="dashicons dashicons-plus-alt2"></span>
+                <?php echo esc_html__('Aggiungi Cliente', 'fp-task-agenda'); ?>
+            </button>
+            <button type="button" class="fp-btn fp-btn-secondary" id="fp-sync-clients-btn">
+                <span class="dashicons dashicons-update"></span>
+                <?php echo esc_html__('Sincronizza da FP Publisher', 'fp-task-agenda'); ?>
+            </button>
+        </div>
+    </div>
     
     <hr class="wp-header-end">
     
-    <p class="description" style="margin-bottom: 24px;">
+    <p class="description fp-clients-description">
         <?php echo esc_html__('Gestisci i tuoi clienti. Puoi sincronizzarli automaticamente da FP Publisher o aggiungerli manualmente.', 'fp-task-agenda'); ?>
     </p>
     
     <!-- Lista Clienti -->
     <div class="fp-tasks-container">
         <?php if (empty($clients)): ?>
-            <div class="fp-no-templates">
-                <p><?php echo esc_html__('Nessun cliente trovato.', 'fp-task-agenda'); ?></p>
-                <p><?php echo esc_html__('Clicca su "Aggiungi Cliente" o "Sincronizza da FP Publisher" per iniziare.', 'fp-task-agenda'); ?></p>
+            <div class="fp-empty-state">
+                <div class="fp-empty-state-icon">
+                    <span class="dashicons dashicons-businessman"></span>
+                </div>
+                <h3 class="fp-empty-state-title"><?php echo esc_html__('Nessun cliente trovato', 'fp-task-agenda'); ?></h3>
+                <p class="fp-empty-state-description">
+                    <?php echo esc_html__('Clicca su "Aggiungi Cliente" o "Sincronizza da FP Publisher" per iniziare.', 'fp-task-agenda'); ?>
+                </p>
             </div>
         <?php else: ?>
-            <table class="fp-tasks-table">
+            <table class="wp-list-table widefat fixed striped fp-tasks-table">
                 <thead>
                     <tr>
-                        <th style="width: 200px;"><?php echo esc_html__('Nome', 'fp-task-agenda'); ?></th>
-                        <th style="width: 150px;"><?php echo esc_html__('Fonte', 'fp-task-agenda'); ?></th>
-                        <th><?php echo esc_html__('Azioni', 'fp-task-agenda'); ?></th>
+                        <th scope="col" style="width: 200px;"><?php echo esc_html__('Nome', 'fp-task-agenda'); ?></th>
+                        <th scope="col" style="width: 150px;"><?php echo esc_html__('Fonte', 'fp-task-agenda'); ?></th>
+                        <th scope="col"><?php echo esc_html__('Azioni', 'fp-task-agenda'); ?></th>
                     </tr>
                 </thead>
                 <tbody id="fp-clients-list">
                     <?php foreach ($clients as $client): ?>
-                        <tr class="fp-task-row" data-client-id="<?php echo esc_attr($client->id); ?>">
+                        <tr class="fp-task-row fp-client-row" data-client-id="<?php echo esc_attr($client->id); ?>">
                             <td>
                                 <strong class="fp-client-name"><?php echo esc_html($client->name); ?></strong>
                             </td>
@@ -63,11 +75,11 @@ if (!defined('ABSPATH')) {
                             <td>
                                 <div class="fp-template-actions">
                                     <?php if ($client->source === 'manual'): ?>
-                                    <button type="button" class="button-link fp-edit-client" data-client-id="<?php echo esc_attr($client->id); ?>">
+                                    <button type="button" class="button-link fp-edit-client" data-client-id="<?php echo esc_attr($client->id); ?>" aria-label="<?php echo esc_attr__('Modifica cliente', 'fp-task-agenda'); ?>">
                                         <span class="dashicons dashicons-edit"></span> <?php echo esc_html__('Modifica', 'fp-task-agenda'); ?>
                                     </button>
                                     <span class="separator">|</span>
-                                    <button type="button" class="button-link delete fp-delete-client" data-client-id="<?php echo esc_attr($client->id); ?>">
+                                    <button type="button" class="button-link delete fp-delete-client" data-client-id="<?php echo esc_attr($client->id); ?>" aria-label="<?php echo esc_attr__('Elimina cliente', 'fp-task-agenda'); ?>">
                                         <span class="dashicons dashicons-trash"></span> <?php echo esc_html__('Elimina', 'fp-task-agenda'); ?>
                                     </button>
                                     <?php else: ?>
@@ -84,11 +96,11 @@ if (!defined('ABSPATH')) {
 </div>
 
 <!-- Modal Aggiungi/Modifica Cliente -->
-<div id="fp-client-modal" class="fp-modal" style="display: none;">
+<div id="fp-client-modal" class="fp-modal" role="dialog" aria-modal="true" aria-labelledby="fp-client-modal-title" style="display: none;">
     <div class="fp-modal-content">
         <div class="fp-modal-header">
             <h2 id="fp-client-modal-title"><?php echo esc_html__('Aggiungi Cliente', 'fp-task-agenda'); ?></h2>
-            <button type="button" class="fp-modal-close">&times;</button>
+            <button type="button" class="fp-modal-close" aria-label="<?php echo esc_attr__('Chiudi', 'fp-task-agenda'); ?>">&times;</button>
         </div>
         <div class="fp-modal-body">
             <form id="fp-client-form">
@@ -115,162 +127,3 @@ if (!defined('ABSPATH')) {
 </div>
 
 <div class="fp-modal-backdrop" id="fp-client-modal-backdrop" style="display: none;"></div>
-
-<script>
-// Definisci le variabili se non sono già state caricate da admin.js
-(function() {
-    if (typeof fpTaskAgenda === 'undefined') {
-        window.fpTaskAgenda = {
-            ajaxUrl: '<?php echo esc_js(admin_url('admin-ajax.php')); ?>',
-            nonce: '<?php echo esc_js(wp_create_nonce('fp_task_agenda_nonce')); ?>',
-            strings: {
-                addTask: '<?php echo esc_js(__('Aggiungi Task', 'fp-task-agenda')); ?>',
-                editTask: '<?php echo esc_js(__('Modifica Task', 'fp-task-agenda')); ?>',
-                confirmDelete: '<?php echo esc_js(__('Sei sicuro di voler eliminare questo task?', 'fp-task-agenda')); ?>',
-                error: '<?php echo esc_js(__('Si è verificato un errore', 'fp-task-agenda')); ?>',
-                success: '<?php echo esc_js(__('Operazione completata con successo', 'fp-task-agenda')); ?>'
-            }
-        };
-    }
-})();
-
-jQuery(document).ready(function($) {
-    
-    // Gestione clienti
-    $('#fp-add-client-btn').on('click', function() {
-        $('#fp-client-modal-title').text('<?php echo esc_js(__('Aggiungi Cliente', 'fp-task-agenda')); ?>');
-        $('#fp-client-form')[0].reset();
-        $('#fp-client-id').val('');
-        $('#fp-client-modal-backdrop, #fp-client-modal').fadeIn(200);
-    });
-    
-    $('.fp-edit-client').on('click', function(e) {
-        e.preventDefault();
-        var clientId = $(this).data('client-id');
-        var $row = $(this).closest('.fp-task-row');
-        var name = $row.find('.fp-client-name').text();
-        
-        $('#fp-client-modal-title').text('<?php echo esc_js(__('Modifica Cliente', 'fp-task-agenda')); ?>');
-        $('#fp-client-id').val(clientId);
-        $('#fp-client-name').val(name);
-        $('#fp-client-modal-backdrop, #fp-client-modal').fadeIn(200);
-    });
-    
-    $('.fp-delete-client').on('click', function(e) {
-        e.preventDefault();
-        
-        if (!confirm('<?php echo esc_js(__('Sei sicuro di voler eliminare questo cliente?', 'fp-task-agenda')); ?>')) {
-            return;
-        }
-        
-        var clientId = $(this).data('client-id');
-        var $row = $(this).closest('.fp-task-row');
-        
-        $.ajax({
-            url: fpTaskAgenda.ajaxUrl,
-            type: 'POST',
-            data: {
-                action: 'fp_task_agenda_delete_client',
-                nonce: fpTaskAgenda.nonce,
-                id: clientId
-            },
-            success: function(response) {
-                if (response.success) {
-                    $row.fadeOut(300, function() {
-                        $(this).remove();
-                    });
-                    alert(response.data.message || '<?php echo esc_js(__('Cliente eliminato', 'fp-task-agenda')); ?>');
-                } else {
-                    alert(response.data.message || '<?php echo esc_js(__('Errore', 'fp-task-agenda')); ?>');
-                }
-            },
-            error: function() {
-                alert('<?php echo esc_js(__('Errore durante l\'eliminazione', 'fp-task-agenda')); ?>');
-            }
-        });
-    });
-    
-    $('#fp-sync-clients-btn').on('click', function() {
-        var $btn = $(this);
-        $btn.prop('disabled', true).text('<?php echo esc_js(__('Sincronizzazione in corso...', 'fp-task-agenda')); ?>');
-        
-        $.ajax({
-            url: fpTaskAgenda.ajaxUrl,
-            type: 'POST',
-            data: {
-                action: 'fp_task_agenda_sync_clients',
-                nonce: fpTaskAgenda.nonce
-            },
-            success: function(response) {
-                if (response.success) {
-                    var message = response.data.message || '<?php echo esc_js(__('Sincronizzazione completata', 'fp-task-agenda')); ?>';
-                    // Mostra sempre il messaggio, anche se synced è 0
-                    if (response.data.synced === 0 && response.data.updated === 0 && response.data.skipped === 0) {
-                        alert('<?php echo esc_js(__('Nessun cliente trovato in FP Publisher', 'fp-task-agenda')); ?>');
-                    } else {
-                        alert(message);
-                    }
-                    // Ricarica solo se ci sono stati cambiamenti o per aggiornare i nomi
-                    if (response.data.synced > 0 || response.data.updated > 0) {
-                        window.location.reload();
-                    }
-                } else {
-                    alert(response.data.message || '<?php echo esc_js(__('Errore durante la sincronizzazione', 'fp-task-agenda')); ?>');
-                }
-            },
-            error: function() {
-                alert('<?php echo esc_js(__('Errore durante la sincronizzazione', 'fp-task-agenda')); ?>');
-            },
-            complete: function() {
-                $btn.prop('disabled', false).text('<?php echo esc_js(__('Sincronizza da FP Publisher', 'fp-task-agenda')); ?>');
-            }
-        });
-    });
-    
-    $('.fp-modal-close, .fp-modal-cancel, #fp-client-modal-backdrop').on('click', function() {
-        $('#fp-client-modal-backdrop, #fp-client-modal').fadeOut(200);
-    });
-    
-    $('#fp-client-modal').on('click', function(e) {
-        e.stopPropagation();
-    });
-    
-    $('.fp-modal-save').on('click', function() {
-        var clientId = $('#fp-client-id').val();
-        var name = $('#fp-client-name').val().trim();
-        
-        if (!name) {
-            alert('<?php echo esc_js(__('Il nome è obbligatorio', 'fp-task-agenda')); ?>');
-            return;
-        }
-        
-        var action = clientId ? 'fp_task_agenda_update_client' : 'fp_task_agenda_add_client';
-        var $btn = $(this);
-        $btn.prop('disabled', true).text('<?php echo esc_js(__('Salvataggio...', 'fp-task-agenda')); ?>');
-        
-        $.ajax({
-            url: fpTaskAgenda.ajaxUrl,
-            type: 'POST',
-            data: {
-                action: action,
-                nonce: fpTaskAgenda.nonce,
-                id: clientId,
-                name: name
-            },
-            success: function(response) {
-                if (response.success) {
-                    alert(response.data.message || '<?php echo esc_js(__('Operazione completata', 'fp-task-agenda')); ?>');
-                    window.location.reload();
-                } else {
-                    alert(response.data.message || '<?php echo esc_js(__('Errore', 'fp-task-agenda')); ?>');
-                    $btn.prop('disabled', false).text('<?php echo esc_js(__('Salva', 'fp-task-agenda')); ?>');
-                }
-            },
-            error: function() {
-                alert('<?php echo esc_js(__('Errore durante il salvataggio', 'fp-task-agenda')); ?>');
-                $btn.prop('disabled', false).text('<?php echo esc_js(__('Salva', 'fp-task-agenda')); ?>');
-            }
-        });
-    });
-});
-</script>

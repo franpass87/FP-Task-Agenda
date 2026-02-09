@@ -76,7 +76,7 @@ if (!defined('ABSPATH')) {
             </div>
         <?php else: ?>
             <div class="alignleft actions" style="margin-bottom: 10px;">
-                <?php echo sprintf(__('%d task archiviati', 'fp-task-agenda'), $total_archived); ?>
+                <?php echo esc_html(sprintf(__('%d task archiviati', 'fp-task-agenda'), $total_archived)); ?>
             </div>
             
             <table class="wp-list-table widefat fixed striped fp-tasks-table fp-archived-table">

@@ -64,6 +64,28 @@ class Admin {
     }
     
     /**
+     * Invia risposta AJAX di errore standardizzata (message + code)
+     */
+    private static function send_ajax_error($message, $code = 'error', $http_status = 400) {
+        status_header($http_status);
+        wp_send_json_error(array('message' => $message, 'code' => $code));
+    }
+    
+    /**
+     * Ottiene messaggio user-friendly da WP_Error
+     */
+    private static function get_wp_error_message(\WP_Error $error) {
+        $code = $error->get_error_code();
+        $message = $error->get_error_message();
+        $map = array(
+            'db_error' => __('Errore del database. Riprova più tardi.', 'fp-task-agenda'),
+            'missing_title' => __('Il titolo è obbligatorio', 'fp-task-agenda'),
+            'invalid_id' => __('ID non valido', 'fp-task-agenda')
+        );
+        return isset($map[$code]) ? $map[$code] : $message;
+    }
+    
+    /**
      * Aggiungi menu admin
      */
     public function add_admin_menu() {
@@ -101,6 +123,15 @@ class Admin {
             'read',
             'fp-task-agenda-templates',
             array($this, 'render_templates_page')
+        );
+        
+        add_submenu_page(
+            'fp-task-agenda',
+            __('Impostazioni', 'fp-task-agenda'),
+            __('Impostazioni', 'fp-task-agenda'),
+            'manage_options',
+            'fp-task-agenda-settings',
+            array(Settings::get_instance(), 'render_settings_page')
         );
         
         // Conta task archiviati per il badge
@@ -156,12 +187,10 @@ class Admin {
      * Carica script e stili admin
      */
     public function enqueue_admin_assets($hook) {
-        // Verifica se siamo in una delle pagine del plugin
-        $is_main_page = ($hook === 'toplevel_page_fp-task-agenda');
-        $is_clients_page = (strpos($hook, 'fp-task-agenda-clients') !== false);
-        $is_templates_page = (strpos($hook, 'fp-task-agenda-templates') !== false);
+        // Verifica se siamo in una delle pagine del plugin (main, clienti, template, archiviati)
+        $is_plugin_page = (strpos($hook, 'fp-task-agenda') !== false);
         
-        if (!$is_main_page && !$is_clients_page && !$is_templates_page) {
+        if (!$is_plugin_page) {
             return;
         }
         
@@ -172,8 +201,8 @@ class Admin {
             FP_TASK_AGENDA_VERSION
         );
         
-        // Carica JavaScript per tutte le pagine
-        if ($is_main_page || $is_clients_page || $is_templates_page) {
+        // Carica JavaScript per tutte le pagine del plugin
+        if ($is_plugin_page) {
             wp_enqueue_script(
                 'fp-task-agenda-admin',
                 FP_TASK_AGENDA_PLUGIN_URL . 'assets/js/admin.js',
@@ -186,16 +215,31 @@ class Admin {
                 'ajaxUrl' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('fp_task_agenda_nonce'),
                 'templatesPageUrl' => admin_url('admin.php?page=fp-task-agenda-templates'),
+                'itemsPerPage' => Plugin::get_items_per_page(),
+                'kanbanPerPage' => min(500, Plugin::get_items_per_page() * 25),
+                'priorities' => \FP\TaskAgenda\Task::get_priorities(),
+                'statuses' => \FP\TaskAgenda\Task::get_statuses(),
                 'strings' => array(
                     'addTask' => __('Aggiungi Task', 'fp-task-agenda'),
                     'editTask' => __('Modifica Task', 'fp-task-agenda'),
                     'confirmDelete' => __('Sei sicuro di voler eliminare questo task?', 'fp-task-agenda'),
+                    'confirmPermanentlyDelete' => __('Sei sicuro di voler eliminare definitivamente questo task? Questa azione è irreversibile.', 'fp-task-agenda'),
+                    'confirmBulkDelete' => __('Sei sicuro di voler eliminare i task selezionati?', 'fp-task-agenda'),
                     'error' => __('Si è verificato un errore', 'fp-task-agenda'),
                     'success' => __('Operazione completata con successo', 'fp-task-agenda'),
                     'titleRequired' => __('Il titolo è obbligatorio', 'fp-task-agenda'),
                     'saving' => __('Salvataggio...', 'fp-task-agenda'),
                     'save' => __('Salva', 'fp-task-agenda'),
-                    'taskDeleted' => __('Task eliminato', 'fp-task-agenda')
+                    'taskDeleted' => __('Task eliminato', 'fp-task-agenda'),
+                    'networkError' => __('Impossibile contattare il server. Verifica la connessione.', 'fp-task-agenda'),
+                    'addClient' => __('Aggiungi Cliente', 'fp-task-agenda'),
+                    'editClient' => __('Modifica Cliente', 'fp-task-agenda'),
+                    'confirmDeleteClient' => __('Sei sicuro di voler eliminare questo cliente?', 'fp-task-agenda'),
+                    'clientDeleted' => __('Cliente eliminato', 'fp-task-agenda'),
+                    'syncing' => __('Sincronizzazione in corso...', 'fp-task-agenda'),
+                    'syncComplete' => __('Sincronizzazione completata', 'fp-task-agenda'),
+                    'noClientsInPublisher' => __('Nessun cliente trovato in FP Publisher', 'fp-task-agenda'),
+                    'nameRequired' => __('Il nome è obbligatorio', 'fp-task-agenda')
                 )
             ));
         }
@@ -221,16 +265,19 @@ class Admin {
         $orderby = isset($_GET['orderby']) ? sanitize_text_field($_GET['orderby']) : 'created_at';
         $order = isset($_GET['order']) && strtoupper($_GET['order']) === 'ASC' ? 'ASC' : 'DESC';
         
+        $per_page = Plugin::get_items_per_page();
+        
         // Ottieni task
         $args = array(
             'status' => $current_status,
             'priority' => $current_priority,
             'client_id' => $current_client,
             'search' => $search,
-            'per_page' => 20,
+            'per_page' => $per_page,
             'page' => $current_page,
             'orderby' => $orderby,
-            'order' => $order
+            'order' => $order,
+            'show_completed' => Plugin::get_show_completed()
         );
         
         // Ottieni tutti i clienti per il filtro
@@ -238,11 +285,11 @@ class Admin {
         
         $tasks = Database::get_tasks($args);
         $total_tasks = Database::count_tasks($args);
-        $total_pages = ceil($total_tasks / 20);
+        $total_pages = ceil($total_tasks / $per_page);
         
-        // Statistiche
+        // Statistiche (rispetta show_completed per conteggio 'all')
         $stats = array(
-            'all' => Database::count_tasks(array('status' => 'all')),
+            'all' => Database::count_tasks(array('status' => 'all', 'show_completed' => Plugin::get_show_completed())),
             'pending' => Database::count_tasks(array('status' => 'pending')),
             'in_progress' => Database::count_tasks(array('status' => 'in_progress')),
             'completed' => Database::count_tasks(array('status' => 'completed')),
@@ -296,7 +343,7 @@ class Admin {
         // Title è sempre richiesto
         $title = isset($_POST['title']) ? trim(sanitize_text_field($_POST['title'])) : '';
         if (empty($title)) {
-            wp_send_json_error(array('message' => __('Il titolo è obbligatorio', 'fp-task-agenda')));
+            self::send_ajax_error(__('Il titolo è obbligatorio', 'fp-task-agenda'), 'missing_title');
         }
         
         // Description può essere vuota
@@ -368,20 +415,19 @@ class Admin {
         ));
         
         if (is_wp_error($result)) {
-            // Log errore per debug (solo in modalità debug)
             if (defined('WP_DEBUG') && WP_DEBUG) {
                 error_log('FP Task Agenda - Errore inserimento task: ' . $result->get_error_message());
             }
-            wp_send_json_error(array('message' => $result->get_error_message()));
+            self::send_ajax_error(self::get_wp_error_message($result), $result->get_error_code());
         }
         
         if (empty($result)) {
-            wp_send_json_error(array('message' => __('Errore: nessun ID restituito dopo l\'inserimento', 'fp-task-agenda')));
+            self::send_ajax_error(__('Errore: nessun ID restituito dopo l\'inserimento', 'fp-task-agenda'), 'db_error');
         }
         
         $task = Database::get_task($result);
         if (!$task) {
-            wp_send_json_error(array('message' => __('Task creato ma non trovato nel database', 'fp-task-agenda')));
+            self::send_ajax_error(__('Task creato ma non trovato nel database', 'fp-task-agenda'), 'not_found');
         }
         
         wp_send_json_success(array('task' => $task, 'message' => __('Task aggiunto con successo', 'fp-task-agenda')));
@@ -395,7 +441,7 @@ class Admin {
         
         $id = isset($_POST['id']) ? absint($_POST['id']) : 0;
         if (!$id) {
-            wp_send_json_error(array('message' => __('ID task non valido', 'fp-task-agenda')));
+            self::send_ajax_error(__('ID task non valido', 'fp-task-agenda'), 'invalid_id');
         }
         
         $data = array();
@@ -474,15 +520,15 @@ class Admin {
         
         // Verifica che ci sia almeno un campo da aggiornare
         if (empty($data)) {
-            wp_send_json_error(array('message' => __('Nessun dato da aggiornare', 'fp-task-agenda')));
+            self::send_ajax_error(__('Nessun dato da aggiornare', 'fp-task-agenda'), 'missing_title');
         }
         
         $result = Database::update_task($id, $data);
         
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()));
+            self::send_ajax_error(self::get_wp_error_message($result), $result->get_error_code());
         }
-        
+
         $task = Database::get_task($id);
         wp_send_json_success(array('task' => $task, 'message' => __('Task aggiornato con successo', 'fp-task-agenda')));
     }
@@ -495,13 +541,13 @@ class Admin {
         
         $id = isset($_POST['id']) ? absint($_POST['id']) : 0;
         if (!$id) {
-            wp_send_json_error(array('message' => __('ID task non valido', 'fp-task-agenda')));
+            self::send_ajax_error(__('ID task non valido', 'fp-task-agenda'), 'invalid_id');
         }
         
         $result = Database::delete_task($id);
         
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()));
+            self::send_ajax_error(self::get_wp_error_message($result), $result->get_error_code());
         }
         
         wp_send_json_success(array('message' => __('Task eliminato con successo', 'fp-task-agenda')));
@@ -515,12 +561,12 @@ class Admin {
         
         $id = isset($_POST['id']) ? absint($_POST['id']) : 0;
         if (!$id) {
-            wp_send_json_error(array('message' => __('ID task non valido', 'fp-task-agenda')));
+            self::send_ajax_error(__('ID task non valido', 'fp-task-agenda'), 'invalid_id');
         }
         
         $task = Database::get_task($id);
         if (!$task) {
-            wp_send_json_error(array('message' => __('Task non trovato', 'fp-task-agenda')));
+            self::send_ajax_error(__('Task non trovato', 'fp-task-agenda'), 'not_found');
         }
         
         $new_status = $task->status === 'completed' ? 'pending' : 'completed';
@@ -528,7 +574,7 @@ class Admin {
         $result = Database::update_task($id, array('status' => $new_status));
         
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()));
+            self::send_ajax_error(self::get_wp_error_message($result), $result->get_error_code());
         }
         
         $updated_task = Database::get_task($id);
@@ -545,8 +591,10 @@ class Admin {
         $priority = isset($_POST['priority']) ? sanitize_text_field($_POST['priority']) : 'all';
         $client_id = isset($_POST['client_id']) ? sanitize_text_field($_POST['client_id']) : 'all';
         $page = isset($_POST['page']) ? absint($_POST['page']) : 1;
-        $per_page = isset($_POST['per_page']) ? absint($_POST['per_page']) : 20;
+        $per_page = isset($_POST['per_page']) ? absint($_POST['per_page']) : Plugin::get_items_per_page();
         $search = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
+        $orderby = isset($_POST['orderby']) ? sanitize_text_field($_POST['orderby']) : 'created_at';
+        $order = isset($_POST['order']) && strtoupper($_POST['order']) === 'ASC' ? 'ASC' : 'DESC';
         
         $args = array(
             'status' => $status,
@@ -555,14 +603,18 @@ class Admin {
             'search' => $search,
             'per_page' => $per_page,
             'page' => $page,
-            'orderby' => 'created_at',
-            'order' => 'DESC'
+            'orderby' => $orderby,
+            'order' => $order,
+            'show_completed' => Plugin::get_show_completed()
         );
         
         $tasks = Database::get_tasks($args);
         $total = Database::count_tasks($args);
+        $total_pages = ceil($total / $per_page);
         
-        // Aggiungi nome cliente per ogni task
+        // Aggiungi dati formattati per ogni task (per render AJAX)
+        $priorities = \FP\TaskAgenda\Task::get_priorities();
+        $statuses = \FP\TaskAgenda\Task::get_statuses();
         foreach ($tasks as $task) {
             if (!empty($task->client_id)) {
                 $client = Client::get($task->client_id);
@@ -570,12 +622,45 @@ class Admin {
             } else {
                 $task->client_name = '';
             }
+            $task->due_date_formatted = \FP\TaskAgenda\Task::format_due_date($task->due_date);
+            $task->is_due_soon = \FP\TaskAgenda\Task::is_due_soon($task->due_date);
+            $task->is_overdue = \FP\TaskAgenda\Task::is_overdue($task->due_date);
+            $task->priority_class = \FP\TaskAgenda\Task::get_priority_class($task->priority);
+            $task->priority_icon = \FP\TaskAgenda\Task::get_priority_icon($task->priority);
+            $task->status_label = isset($statuses[$task->status]) ? $statuses[$task->status] : $task->status;
+            $task->priority_label = isset($priorities[$task->priority]) ? $priorities[$task->priority] : $task->priority;
+            $rec_labels = array('daily' => __('Giornaliera', 'fp-task-agenda'), 'weekly' => __('Settimanale', 'fp-task-agenda'), 'monthly' => __('Mensile', 'fp-task-agenda'));
+            $task->recurrence_label = !empty($task->recurrence_type) && isset($rec_labels[$task->recurrence_type]) ? $rec_labels[$task->recurrence_type] : '';
+            $task->recurrence_day_detail = '';
+            if (!empty($task->recurrence_day) && !empty($task->recurrence_type)) {
+                if ($task->recurrence_type === 'monthly') {
+                    $task->recurrence_day_detail = sprintf(__('(il %d)', 'fp-task-agenda'), $task->recurrence_day);
+                } elseif ($task->recurrence_type === 'weekly') {
+                    $days = array(0 => __('Dom', 'fp-task-agenda'), 1 => __('Lun', 'fp-task-agenda'), 2 => __('Mar', 'fp-task-agenda'), 3 => __('Mer', 'fp-task-agenda'), 4 => __('Gio', 'fp-task-agenda'), 5 => __('Ven', 'fp-task-agenda'), 6 => __('Sab', 'fp-task-agenda'));
+                    $task->recurrence_day_detail = '(' . (isset($days[$task->recurrence_day]) ? $days[$task->recurrence_day] : '') . ')';
+                }
+            }
+            $task->created_at_human = human_time_diff(strtotime($task->created_at), current_time('timestamp')) . ' fa';
         }
+        
+        // Stats per aggiornamento AJAX
+        $stats_args = array('show_completed' => Plugin::get_show_completed());
+        $stats = array(
+            'all' => Database::count_tasks(array_merge($stats_args, array('status' => 'all'))),
+            'pending' => Database::count_tasks(array('status' => 'pending')),
+            'in_progress' => Database::count_tasks(array('status' => 'in_progress')),
+            'completed' => Database::count_tasks(array('status' => 'completed')),
+            'due_soon' => Database::count_tasks_due_soon()
+        );
         
         wp_send_json_success(array(
             'tasks' => $tasks,
             'total' => $total,
-            'pages' => ceil($total / $per_page)
+            'pages' => $total_pages,
+            'current_page' => $page,
+            'stats' => $stats,
+            'priorities' => $priorities,
+            'statuses' => $statuses
         ));
     }
     
@@ -587,12 +672,12 @@ class Admin {
         
         $id = isset($_POST['id']) ? absint($_POST['id']) : 0;
         if (!$id) {
-            wp_send_json_error(array('message' => __('ID task non valido', 'fp-task-agenda')));
+            self::send_ajax_error(__('ID task non valido', 'fp-task-agenda'), 'invalid_id');
         }
         
         $task = Database::get_task($id);
         if (!$task) {
-            wp_send_json_error(array('message' => __('Task non trovato', 'fp-task-agenda')));
+            self::send_ajax_error(__('Task non trovato', 'fp-task-agenda'), 'not_found');
         }
         
         wp_send_json_success(array('task' => $task));
@@ -617,13 +702,13 @@ class Admin {
         $name = isset($_POST['name']) ? sanitize_text_field($_POST['name']) : '';
         
         if (empty($name)) {
-            wp_send_json_error(array('message' => __('Il nome è obbligatorio', 'fp-task-agenda')));
+            self::send_ajax_error(__('Il nome è obbligatorio', 'fp-task-agenda'), 'missing_title');
         }
         
         $result = Client::create($name);
         
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()));
+            self::send_ajax_error(self::get_wp_error_message($result), $result->get_error_code());
         }
         
         $client = Client::get($result);
@@ -640,17 +725,17 @@ class Admin {
         $name = isset($_POST['name']) ? sanitize_text_field($_POST['name']) : '';
         
         if (!$id) {
-            wp_send_json_error(array('message' => __('ID cliente non valido', 'fp-task-agenda')));
+            self::send_ajax_error(__('ID cliente non valido', 'fp-task-agenda'), 'invalid_id');
         }
         
         if (empty($name)) {
-            wp_send_json_error(array('message' => __('Il nome è obbligatorio', 'fp-task-agenda')));
+            self::send_ajax_error(__('Il nome è obbligatorio', 'fp-task-agenda'), 'missing_title');
         }
         
         $result = Client::update($id, $name);
         
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()));
+            self::send_ajax_error(self::get_wp_error_message($result), $result->get_error_code());
         }
         
         $client = Client::get($id);
@@ -666,13 +751,13 @@ class Admin {
         $id = isset($_POST['id']) ? absint($_POST['id']) : 0;
         
         if (!$id) {
-            wp_send_json_error(array('message' => __('ID cliente non valido', 'fp-task-agenda')));
+            self::send_ajax_error(__('ID cliente non valido', 'fp-task-agenda'), 'invalid_id');
         }
         
         $result = Client::delete($id);
         
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()));
+            self::send_ajax_error(self::get_wp_error_message($result), $result->get_error_code());
         }
         
         wp_send_json_success(array('message' => __('Cliente eliminato con successo', 'fp-task-agenda')));
@@ -684,10 +769,14 @@ class Admin {
     public function ajax_sync_clients() {
         check_ajax_referer('fp_task_agenda_nonce', 'nonce');
         
+        if (!Plugin::get_publisher_sync_enabled()) {
+            self::send_ajax_error(__('Sincronizzazione FP Publisher disabilitata nelle impostazioni.', 'fp-task-agenda'), 'publisher_disabled');
+        }
+        
         $result = Client::sync_from_publisher();
         
         if (!$result['success']) {
-            wp_send_json_error(array('message' => $result['message']));
+            self::send_ajax_error($result['message'], 'sync_error');
         }
         
         wp_send_json_success($result);
@@ -700,13 +789,17 @@ class Admin {
         check_ajax_referer('fp_task_agenda_nonce', 'nonce');
         
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => __('Permessi insufficienti', 'fp-task-agenda')));
+            self::send_ajax_error(__('Permessi insufficienti', 'fp-task-agenda'), 'forbidden', 403);
+        }
+        
+        if (!Plugin::get_publisher_sync_enabled()) {
+            self::send_ajax_error(__('Sincronizzazione FP Publisher disabilitata nelle impostazioni.', 'fp-task-agenda'), 'publisher_disabled');
         }
         
         $result = PublisherIntegration::check_missing_posts();
         
         if (!$result['success']) {
-            wp_send_json_error(array('message' => $result['message'], 'tasks_created' => $result['tasks_created']));
+            self::send_ajax_error($result['message'], 'check_publisher_error');
         }
         
         wp_send_json_success($result);
@@ -730,12 +823,12 @@ class Admin {
         
         $id = isset($_POST['id']) ? absint($_POST['id']) : 0;
         if (!$id) {
-            wp_send_json_error(array('message' => __('ID template non valido', 'fp-task-agenda')));
+            self::send_ajax_error(__('ID template non valido', 'fp-task-agenda'), 'invalid_id');
         }
         
         $template = \FP\TaskAgenda\Template::get($id);
         if (!$template) {
-            wp_send_json_error(array('message' => __('Template non trovato', 'fp-task-agenda')));
+            self::send_ajax_error(__('Template non trovato', 'fp-task-agenda'), 'not_found');
         }
         
         wp_send_json_success(array('template' => $template));
@@ -751,11 +844,11 @@ class Admin {
         $title = isset($_POST['title']) ? sanitize_text_field($_POST['title']) : '';
         
         if (empty($name)) {
-            wp_send_json_error(array('message' => __('Il nome del template è obbligatorio', 'fp-task-agenda')));
+            self::send_ajax_error(__('Il nome del template è obbligatorio', 'fp-task-agenda'), 'missing_title');
         }
         
         if (empty($title)) {
-            wp_send_json_error(array('message' => __('Il titolo del task è obbligatorio', 'fp-task-agenda')));
+            self::send_ajax_error(__('Il titolo del task è obbligatorio', 'fp-task-agenda'), 'missing_title');
         }
         
         $data = array(
@@ -772,7 +865,7 @@ class Admin {
         $result = \FP\TaskAgenda\Template::create($data);
         
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()));
+            self::send_ajax_error(self::get_wp_error_message($result), $result->get_error_code());
         }
         
         $template = \FP\TaskAgenda\Template::get($result);
@@ -787,7 +880,7 @@ class Admin {
         
         $id = isset($_POST['id']) ? absint($_POST['id']) : 0;
         if (!$id) {
-            wp_send_json_error(array('message' => __('ID template non valido', 'fp-task-agenda')));
+            self::send_ajax_error(__('ID template non valido', 'fp-task-agenda'), 'invalid_id');
         }
         
         $data = array();
@@ -819,7 +912,7 @@ class Admin {
         $result = \FP\TaskAgenda\Template::update($id, $data);
         
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()));
+            self::send_ajax_error(self::get_wp_error_message($result), $result->get_error_code());
         }
         
         $template = \FP\TaskAgenda\Template::get($id);
@@ -834,13 +927,13 @@ class Admin {
         
         $id = isset($_POST['id']) ? absint($_POST['id']) : 0;
         if (!$id) {
-            wp_send_json_error(array('message' => __('ID template non valido', 'fp-task-agenda')));
+            self::send_ajax_error(__('ID template non valido', 'fp-task-agenda'), 'invalid_id');
         }
         
         $result = \FP\TaskAgenda\Template::delete($id);
         
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()));
+            self::send_ajax_error(self::get_wp_error_message($result), $result->get_error_code());
         }
         
         wp_send_json_success(array('message' => __('Template eliminato con successo', 'fp-task-agenda')));
@@ -854,7 +947,7 @@ class Admin {
         
         $template_id = isset($_POST['template_id']) ? absint($_POST['template_id']) : 0;
         if (!$template_id) {
-            wp_send_json_error(array('message' => __('ID template non valido', 'fp-task-agenda')));
+            self::send_ajax_error(__('ID template non valido', 'fp-task-agenda'), 'invalid_id');
         }
         
         $custom_due_date = isset($_POST['due_date']) && !empty($_POST['due_date']) ? sanitize_text_field($_POST['due_date']) : null;
@@ -862,7 +955,7 @@ class Admin {
         $result = \FP\TaskAgenda\Template::create_task_from_template($template_id, $custom_due_date);
         
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()));
+            self::send_ajax_error(self::get_wp_error_message($result), $result->get_error_code());
         }
         
         $task = Database::get_task($result);
@@ -879,17 +972,17 @@ class Admin {
         $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : '';
         
         if (!$id) {
-            wp_send_json_error(array('message' => __('ID task non valido', 'fp-task-agenda')));
+            self::send_ajax_error(__('ID task non valido', 'fp-task-agenda'), 'invalid_id');
         }
         
         if (!in_array($status, array('pending', 'in_progress', 'completed'))) {
-            wp_send_json_error(array('message' => __('Stato non valido', 'fp-task-agenda')));
+            self::send_ajax_error(__('Stato non valido', 'fp-task-agenda'), 'invalid_status');
         }
         
         $result = Database::update_task($id, array('status' => $status));
         
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()));
+            self::send_ajax_error(self::get_wp_error_message($result), $result->get_error_code());
         }
         
         $task = Database::get_task($id);
@@ -906,17 +999,17 @@ class Admin {
         $priority = isset($_POST['priority']) ? sanitize_text_field($_POST['priority']) : '';
         
         if (!$id) {
-            wp_send_json_error(array('message' => __('ID task non valido', 'fp-task-agenda')));
+            self::send_ajax_error(__('ID task non valido', 'fp-task-agenda'), 'invalid_id');
         }
         
         if (!in_array($priority, array('low', 'normal', 'high', 'urgent'))) {
-            wp_send_json_error(array('message' => __('Priorità non valida', 'fp-task-agenda')));
+            self::send_ajax_error(__('Priorità non valida', 'fp-task-agenda'), 'invalid_priority');
         }
         
         $result = Database::update_task($id, array('priority' => $priority));
         
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()));
+            self::send_ajax_error(self::get_wp_error_message($result), $result->get_error_code());
         }
         
         $task = Database::get_task($id);
@@ -943,7 +1036,7 @@ class Admin {
         $task_ids = isset($_POST['task_ids']) ? array_map('absint', (array)$_POST['task_ids']) : array();
         
         if (empty($task_ids)) {
-            wp_send_json_error(array('message' => __('Nessun task selezionato', 'fp-task-agenda')));
+            self::send_ajax_error(__('Nessun task selezionato', 'fp-task-agenda'), 'no_tasks_selected');
         }
         
         $processed = 0;
@@ -1013,16 +1106,17 @@ class Admin {
     public function render_archived_page() {
         $current_page = isset($_GET['paged']) ? absint($_GET['paged']) : 1;
         $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
+        $per_page = Plugin::get_items_per_page();
         
         $args = array(
-            'per_page' => 20,
+            'per_page' => $per_page,
             'page' => $current_page,
             'search' => $search
         );
         
         $archived_tasks = Database::get_archived_tasks($args);
         $total_archived = Database::count_archived_tasks($args);
-        $total_pages = ceil($total_archived / 20);
+        $total_pages = ceil($total_archived / $per_page);
         
         include FP_TASK_AGENDA_PLUGIN_DIR . 'includes/admin-templates/archived-page.php';
     }
@@ -1035,13 +1129,13 @@ class Admin {
         
         $id = isset($_POST['id']) ? absint($_POST['id']) : 0;
         if (!$id) {
-            wp_send_json_error(array('message' => __('ID task non valido', 'fp-task-agenda')));
+            self::send_ajax_error(__('ID task non valido', 'fp-task-agenda'), 'invalid_id');
         }
         
         $result = Database::restore_task($id);
         
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()));
+            self::send_ajax_error(self::get_wp_error_message($result), $result->get_error_code());
         }
         
         wp_send_json_success(array('message' => __('Task ripristinato con successo', 'fp-task-agenda')));
@@ -1055,13 +1149,13 @@ class Admin {
         
         $id = isset($_POST['id']) ? absint($_POST['id']) : 0;
         if (!$id) {
-            wp_send_json_error(array('message' => __('ID task non valido', 'fp-task-agenda')));
+            self::send_ajax_error(__('ID task non valido', 'fp-task-agenda'), 'invalid_id');
         }
         
         $result = Database::permanently_delete_task($id);
         
         if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()));
+            self::send_ajax_error(self::get_wp_error_message($result), $result->get_error_code());
         }
         
         wp_send_json_success(array('message' => __('Task eliminato definitivamente', 'fp-task-agenda')));

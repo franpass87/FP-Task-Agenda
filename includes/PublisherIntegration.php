@@ -698,8 +698,8 @@ class PublisherIntegration {
      * Metodo principale: verifica tutti i clienti e crea task per post mancanti
      */
     public static function check_missing_posts() {
-        // Verifica se l'integrazione è abilitata
-        $enabled = get_option('fp_task_agenda_publisher_enabled', true);
+        // Verifica se l'integrazione è abilitata (da impostazioni plugin)
+        $enabled = \FP\TaskAgenda\Plugin::get_publisher_sync_enabled();
         if (!$enabled) {
             return array(
                 'success' => false,
