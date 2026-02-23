@@ -216,7 +216,7 @@ class Template {
             $due_date = $custom_due_date;
         } elseif ($template->due_date_offset != 0) {
             $date = new \DateTime();
-            $date->modify("+{$template->due_date_offset} days");
+            $date->modify("{$template->due_date_offset} days");
             $due_date = $date->format('Y-m-d H:i:s');
         }
         

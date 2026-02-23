@@ -481,7 +481,7 @@ if (!defined('ABSPATH')) {
                                     
                                     // Aggiungi dettaglio giorno se presente
                                     $day_detail = '';
-                                    if (!empty($task->recurrence_day)) {
+                                    if ($task->recurrence_day !== null && $task->recurrence_day !== '') {
                                         if ($task->recurrence_type === 'monthly') {
                                             $day_detail = sprintf(__('(il %d)', 'fp-task-agenda'), $task->recurrence_day);
                                         } elseif ($task->recurrence_type === 'weekly') {

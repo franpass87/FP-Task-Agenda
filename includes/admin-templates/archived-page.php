@@ -37,7 +37,7 @@ if (!defined('ABSPATH')) {
     <div class="fp-archived-info" style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 12px 16px; margin: 20px 0; display: flex; align-items: center; gap: 10px;">
         <span class="dashicons dashicons-info" style="color: #856404;"></span>
         <span style="color: #856404;">
-            <?php echo esc_html__('I task archiviati vengono eliminati definitivamente dopo 30 giorni.', 'fp-task-agenda'); ?>
+            <?php echo esc_html(sprintf(__('I task archiviati vengono eliminati definitivamente dopo %d giorni.', 'fp-task-agenda'), $auto_cleanup_days)); ?>
         </span>
     </div>
     

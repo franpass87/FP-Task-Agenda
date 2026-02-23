@@ -179,7 +179,7 @@ class Database {
         $table_name = $wpdb->prefix . 'fp_task_agenda';
         
         // Verifica se la tabella esiste
-        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'");
+        $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table_name));
         if (!$table_exists) {
             // Se la tabella non esiste, ricreala completamente
             self::create_tables();
@@ -298,7 +298,7 @@ class Database {
             $insert_data['recurrence_parent_id'] = !empty($data['recurrence_parent_id']) ? absint($data['recurrence_parent_id']) : null;
             
             // Recurrence day - giorno specifico per ricorrenza mensile (1-31) o settimanale (0-6)
-            if (!empty($data['recurrence_day'])) {
+            if (isset($data['recurrence_day']) && $data['recurrence_day'] !== null && $data['recurrence_day'] !== '') {
                 $insert_data['recurrence_day'] = absint($data['recurrence_day']);
             } else {
                 $insert_data['recurrence_day'] = null;
@@ -411,7 +411,7 @@ class Database {
         }
         
         if (isset($data['recurrence_day'])) {
-            $update_data['recurrence_day'] = !empty($data['recurrence_day']) ? absint($data['recurrence_day']) : null;
+            $update_data['recurrence_day'] = ($data['recurrence_day'] !== null && $data['recurrence_day'] !== '') ? absint($data['recurrence_day']) : null;
         }
         
         if (isset($data['next_recurrence_date'])) {
@@ -632,7 +632,7 @@ class Database {
         
         $table_name = self::get_table_name();
         
-        $cutoff_date = date('Y-m-d H:i:s', strtotime("-{$days} days"));
+        $cutoff_date = date('Y-m-d H:i:s', current_time('timestamp') - ($days * DAY_IN_SECONDS));
         
         $result = $wpdb->query($wpdb->prepare(
             "DELETE FROM $table_name WHERE deleted_at IS NOT NULL AND deleted_at < %s AND user_id = %d",
@@ -651,7 +651,7 @@ class Database {
         
         $table_name = self::get_table_name();
         
-        $cutoff_date = date('Y-m-d H:i:s', strtotime("-{$days} days"));
+        $cutoff_date = date('Y-m-d H:i:s', current_time('timestamp') - ($days * DAY_IN_SECONDS));
         
         $result = $wpdb->query($wpdb->prepare(
             "DELETE FROM $table_name WHERE deleted_at IS NOT NULL AND deleted_at < %s",
@@ -735,6 +735,10 @@ class Database {
         
         if ($args['priority'] !== 'all') {
             $where[] = $wpdb->prepare("priority = %s", $args['priority']);
+        }
+        
+        if ($args['client_id'] !== 'all' && !empty($args['client_id'])) {
+            $where[] = $wpdb->prepare("client_id = %d", absint($args['client_id']));
         }
         
         if (!empty($args['search'])) {
@@ -889,7 +893,7 @@ class Database {
         
         $table_name = self::get_table_name();
         
-        $cutoff_date = date('Y-m-d H:i:s', strtotime("-{$days} days"));
+        $cutoff_date = date('Y-m-d H:i:s', current_time('timestamp') - ($days * DAY_IN_SECONDS));
         
         $result = $wpdb->query($wpdb->prepare(
             "DELETE FROM $table_name WHERE status = 'completed' AND completed_at < %s AND user_id = %d",

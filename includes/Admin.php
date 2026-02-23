@@ -378,15 +378,14 @@ class Admin {
                 $recurrence_type = $recurrence_type_raw;
                 
                 // Recurrence day - giorno specifico per mensile/settimanale
-                if (isset($_POST['recurrence_day']) && !empty($_POST['recurrence_day'])) {
+                if (isset($_POST['recurrence_day']) && $_POST['recurrence_day'] !== '') {
                     $recurrence_day = absint($_POST['recurrence_day']);
-                    // Valida in base al tipo di ricorrenza
                     if ($recurrence_type === 'monthly') {
-                        $recurrence_day = max(1, min(31, $recurrence_day)); // 1-31
+                        $recurrence_day = max(1, min(31, $recurrence_day));
                     } elseif ($recurrence_type === 'weekly') {
-                        $recurrence_day = max(0, min(6, $recurrence_day)); // 0-6 (0=domenica)
+                        $recurrence_day = max(0, min(6, $recurrence_day));
                     } else {
-                        $recurrence_day = null; // Non applicabile per daily
+                        $recurrence_day = null;
                     }
                 }
                 
@@ -485,15 +484,14 @@ class Admin {
                 
                 // Recurrence day - giorno specifico per mensile/settimanale
                 $recurrence_day = null;
-                if (isset($_POST['recurrence_day']) && !empty($_POST['recurrence_day'])) {
+                if (isset($_POST['recurrence_day']) && $_POST['recurrence_day'] !== '') {
                     $recurrence_day = absint($_POST['recurrence_day']);
-                    // Valida in base al tipo di ricorrenza
                     if ($recurrence_type === 'monthly') {
-                        $recurrence_day = max(1, min(31, $recurrence_day)); // 1-31
+                        $recurrence_day = max(1, min(31, $recurrence_day));
                     } elseif ($recurrence_type === 'weekly') {
-                        $recurrence_day = max(0, min(6, $recurrence_day)); // 0-6 (0=domenica)
+                        $recurrence_day = max(0, min(6, $recurrence_day));
                     } else {
-                        $recurrence_day = null; // Non applicabile per daily
+                        $recurrence_day = null;
                     }
                 }
                 $data['recurrence_day'] = $recurrence_day;
@@ -632,7 +630,7 @@ class Admin {
             $rec_labels = array('daily' => __('Giornaliera', 'fp-task-agenda'), 'weekly' => __('Settimanale', 'fp-task-agenda'), 'monthly' => __('Mensile', 'fp-task-agenda'));
             $task->recurrence_label = !empty($task->recurrence_type) && isset($rec_labels[$task->recurrence_type]) ? $rec_labels[$task->recurrence_type] : '';
             $task->recurrence_day_detail = '';
-            if (!empty($task->recurrence_day) && !empty($task->recurrence_type)) {
+            if ($task->recurrence_day !== null && $task->recurrence_day !== '' && !empty($task->recurrence_type)) {
                 if ($task->recurrence_type === 'monthly') {
                     $task->recurrence_day_detail = sprintf(__('(il %d)', 'fp-task-agenda'), $task->recurrence_day);
                 } elseif ($task->recurrence_type === 'weekly') {
@@ -1117,6 +1115,7 @@ class Admin {
         $archived_tasks = Database::get_archived_tasks($args);
         $total_archived = Database::count_archived_tasks($args);
         $total_pages = ceil($total_archived / $per_page);
+        $auto_cleanup_days = Plugin::get_auto_cleanup_days();
         
         include FP_TASK_AGENDA_PLUGIN_DIR . 'includes/admin-templates/archived-page.php';
     }

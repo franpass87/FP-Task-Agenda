@@ -178,7 +178,7 @@ class Plugin {
                 break;
                 
             case 'weekly':
-                if (!empty($recurrence_day) && $recurrence_day >= 0 && $recurrence_day <= 6) {
+                if ($recurrence_day !== null && $recurrence_day !== '' && $recurrence_day >= 0 && $recurrence_day <= 6) {
                     // Mappa giorno numerico a stringa per PHP DateTime
                     $days_map = array(
                         0 => 'Sunday',
@@ -209,7 +209,7 @@ class Plugin {
                 break;
                 
             case 'monthly':
-                if (!empty($recurrence_day) && $recurrence_day >= 1 && $recurrence_day <= 31) {
+                if ($recurrence_day !== null && $recurrence_day !== '' && $recurrence_day >= 1 && $recurrence_day <= 31) {
                     // Vai al mese successivo secondo l'intervallo
                     $date->modify("+{$interval} months");
                     

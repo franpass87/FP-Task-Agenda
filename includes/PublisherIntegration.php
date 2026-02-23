@@ -334,10 +334,8 @@ class PublisherIntegration {
         $next_recurrence_date = null;
         
         if (!empty($recurrence_opts) && $recurrence_opts['type'] === 'monthly') {
-            // Per task mensili, imposta scadenza a fine mese corrente
-            $due_date = date('Y-m-t 23:59:59'); // Ultimo giorno del mese
-            // Prossima ricorrenza: fine mese successivo
-            $next_recurrence_date = date('Y-m-t 23:59:59', strtotime('+1 month'));
+            $due_date = current_time('Y-m-t') . ' 23:59:59';
+            $next_recurrence_date = date('Y-m-t', strtotime('+1 month', current_time('timestamp'))) . ' 23:59:59';
         }
         
         $task_data = array(
@@ -418,8 +416,8 @@ class PublisherIntegration {
         $target_reels = isset($config['reels_per_month']) ? (int)$config['reels_per_month'] : 0;
         
         // Calcola statistiche per il mese corrente
-        $current_month_start = date('Y-m-01 00:00:00');
-        $current_month_end = date('Y-m-t 23:59:59');
+        $current_month_start = current_time('Y-m-01') . ' 00:00:00';
+        $current_month_end = current_time('Y-m-t') . ' 23:59:59';
         
         // Conta post social pubblicati questo mese
         $posts_published = $wpdb->get_var($wpdb->prepare(
@@ -608,8 +606,8 @@ class PublisherIntegration {
         }
         
         // Calcola statistiche per il mese corrente
-        $current_month_start = date('Y-m-01 00:00:00');
-        $current_month_end = date('Y-m-t 23:59:59');
+        $current_month_start = current_time('Y-m-01') . ' 00:00:00';
+        $current_month_end = current_time('Y-m-t') . ' 23:59:59';
         
         // Conta articoli WordPress pubblicati questo mese
         $articles_published = $wpdb->get_var($wpdb->prepare(

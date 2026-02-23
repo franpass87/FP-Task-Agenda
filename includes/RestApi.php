@@ -84,6 +84,15 @@ class RestApi {
             }),
             'client_id' => array('default' => null, 'sanitize_callback' => function ($v) {
                 return !empty($v) ? absint($v) : null;
+            }),
+            'recurrence_type' => array('default' => null, 'sanitize_callback' => function ($v) {
+                return !empty($v) && in_array($v, array('daily', 'weekly', 'monthly')) ? $v : null;
+            }),
+            'recurrence_interval' => array('default' => 1, 'sanitize_callback' => function ($v) {
+                return max(1, absint($v));
+            }),
+            'recurrence_day' => array('default' => null, 'sanitize_callback' => function ($v) {
+                return ($v !== null && $v !== '') ? absint($v) : null;
             })
         );
     }
@@ -99,6 +108,15 @@ class RestApi {
             }),
             'client_id' => array('sanitize_callback' => function ($v) {
                 return $v !== null && $v !== '' ? absint($v) : null;
+            }),
+            'recurrence_type' => array('sanitize_callback' => function ($v) {
+                return !empty($v) && in_array($v, array('daily', 'weekly', 'monthly')) ? $v : null;
+            }),
+            'recurrence_interval' => array('sanitize_callback' => function ($v) {
+                return max(1, absint($v));
+            }),
+            'recurrence_day' => array('sanitize_callback' => function ($v) {
+                return ($v !== null && $v !== '') ? absint($v) : null;
             })
         );
     }
@@ -162,13 +180,29 @@ class RestApi {
         if (!in_array($status, array('pending', 'in_progress', 'completed'))) {
             $status = 'pending';
         }
+        $recurrence_type = $request->get_param('recurrence_type');
+        $recurrence_interval = $request->get_param('recurrence_interval');
+        $recurrence_day = $request->get_param('recurrence_day');
+        $due_date = $request->get_param('due_date');
+        
+        $next_recurrence_date = null;
+        if (!empty($recurrence_type) && !empty($due_date)) {
+            $next_recurrence_date = Plugin::calculate_next_recurrence_date_static(
+                $due_date, $recurrence_type, $recurrence_interval, $recurrence_day
+            );
+        }
+        
         $data = array(
             'title' => $title,
             'description' => $request->get_param('description'),
             'priority' => $priority,
             'status' => $status,
-            'due_date' => $request->get_param('due_date'),
-            'client_id' => $request->get_param('client_id')
+            'due_date' => $due_date,
+            'client_id' => $request->get_param('client_id'),
+            'recurrence_type' => $recurrence_type,
+            'recurrence_interval' => $recurrence_interval,
+            'recurrence_day' => $recurrence_day,
+            'next_recurrence_date' => $next_recurrence_date
         );
         $result = Database::insert_task($data);
         if (is_wp_error($result)) {
@@ -188,7 +222,7 @@ class RestApi {
             return new \WP_Error('forbidden', __('Accesso negato', 'fp-task-agenda'), array('status' => 403));
         }
         $data = array();
-        foreach (array('title', 'description', 'priority', 'status', 'due_date', 'client_id') as $key) {
+        foreach (array('title', 'description', 'priority', 'status', 'due_date', 'client_id', 'recurrence_type', 'recurrence_interval', 'recurrence_day') as $key) {
             if ($request->has_param($key)) {
                 $data[$key] = $request->get_param($key);
             }
@@ -198,6 +232,19 @@ class RestApi {
         }
         if (isset($data['title']) && trim($data['title']) === '') {
             return new \WP_Error('missing_title', __('Il titolo è obbligatorio', 'fp-task-agenda'), array('status' => 400));
+        }
+        if (isset($data['recurrence_type'])) {
+            $due_date = isset($data['due_date']) ? $data['due_date'] : $task->due_date;
+            if (!empty($data['recurrence_type']) && !empty($due_date)) {
+                $data['next_recurrence_date'] = Plugin::calculate_next_recurrence_date_static(
+                    $due_date,
+                    $data['recurrence_type'],
+                    isset($data['recurrence_interval']) ? $data['recurrence_interval'] : 1,
+                    isset($data['recurrence_day']) ? $data['recurrence_day'] : null
+                );
+            } else {
+                $data['next_recurrence_date'] = null;
+            }
         }
         $result = Database::update_task($id, $data);
         if (is_wp_error($result)) {
