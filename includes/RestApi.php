@@ -31,13 +31,6 @@ class RestApi {
             )
         ));
 
-        // Endpoint temporaneo per pulizia duplicati (solo admin)
-        register_rest_route(self::NAMESPACE, '/cleanup-duplicates', array(
-            'methods' => \WP_REST_Server::ALLMETHODS,
-            'callback' => array(__CLASS__, 'cleanup_duplicates'),
-            'permission_callback' => function () { return current_user_can('manage_options'); }
-        ));
-
         register_rest_route(self::NAMESPACE, '/tasks/(?P<id>\d+)', array(
             array(
                 'methods' => \WP_REST_Server::READABLE,
@@ -277,57 +270,4 @@ class RestApi {
         return new \WP_REST_Response(array('deleted' => true), 200);
     }
 
-    /**
-     * Pulizia task duplicati: per ogni combinazione title+client_id con status pending,
-     * tiene il più recente e archivia (soft-delete) i restanti.
-     */
-    public static function cleanup_duplicates(\WP_REST_Request $request) {
-        global $wpdb;
-        $table = Database::get_table_name();
-
-        $duplicates = $wpdb->get_results(
-            "SELECT title, client_id, COUNT(*) as cnt, MAX(id) as keep_id
-             FROM $table
-             WHERE status = 'pending'
-             AND deleted_at IS NULL
-             GROUP BY title, client_id
-             HAVING cnt > 1"
-        );
-
-        $deleted_ids = array();
-        $now = current_time('mysql');
-
-        foreach ($duplicates as $group) {
-            $ids_to_delete = $wpdb->get_col($wpdb->prepare(
-                "SELECT id FROM $table
-                 WHERE title = %s
-                 AND (client_id = %d OR (client_id IS NULL AND %d = 0))
-                 AND status = 'pending'
-                 AND deleted_at IS NULL
-                 AND id != %d
-                 ORDER BY id ASC",
-                $group->title,
-                (int) $group->client_id,
-                (int) $group->client_id,
-                (int) $group->keep_id
-            ));
-
-            if (!empty($ids_to_delete)) {
-                $placeholders = implode(',', array_fill(0, count($ids_to_delete), '%d'));
-                $wpdb->query($wpdb->prepare(
-                    "UPDATE $table SET deleted_at = %s WHERE id IN ($placeholders)",
-                    array_merge(array($now), $ids_to_delete)
-                ));
-                $deleted_ids = array_merge($deleted_ids, $ids_to_delete);
-            }
-        }
-
-        return new \WP_REST_Response(array(
-            'success' => true,
-            'groups_found' => count($duplicates),
-            'tasks_archived' => count($deleted_ids),
-            'archived_ids' => $deleted_ids,
-            'kept_ids' => wp_list_pluck($duplicates, 'keep_id')
-        ), 200);
-    }
 }
