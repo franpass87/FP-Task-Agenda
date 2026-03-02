@@ -61,6 +61,9 @@ class Admin {
         // AJAX handlers per task archiviati
         add_action('wp_ajax_fp_task_agenda_restore_task', array($this, 'ajax_restore_task'));
         add_action('wp_ajax_fp_task_agenda_permanently_delete_task', array($this, 'ajax_permanently_delete_task'));
+        
+        // AJAX handler temporaneo per pulizia duplicati
+        add_action('wp_ajax_fp_task_agenda_cleanup_duplicates', array($this, 'ajax_cleanup_duplicates'));
     }
     
     /**
@@ -1158,5 +1161,67 @@ class Admin {
         }
         
         wp_send_json_success(array('message' => __('Task eliminato definitivamente', 'fp-task-agenda')));
+    }
+    
+    /**
+     * AJAX: Pulizia task duplicati (temporaneo - solo admin)
+     * Per ogni combinazione title+client_id pending, tiene il più recente e archivia i restanti.
+     */
+    public function ajax_cleanup_duplicates() {
+        if (!current_user_can('manage_options')) {
+            self::send_ajax_error('Permessi insufficienti', 'forbidden', 403);
+        }
+        
+        global $wpdb;
+        $table = Database::get_table_name();
+        
+        $duplicates = $wpdb->get_results(
+            "SELECT title, client_id, COUNT(*) as cnt, MAX(id) as keep_id
+             FROM $table
+             WHERE status = 'pending'
+             AND deleted_at IS NULL
+             GROUP BY title, client_id
+             HAVING cnt > 1"
+        );
+        
+        $deleted_ids = array();
+        $now = current_time('mysql');
+        
+        foreach ($duplicates as $group) {
+            $client_id = (int) $group->client_id;
+            if ($client_id > 0) {
+                $ids_to_delete = $wpdb->get_col($wpdb->prepare(
+                    "SELECT id FROM $table
+                     WHERE title = %s AND client_id = %d
+                     AND status = 'pending' AND deleted_at IS NULL AND id != %d
+                     ORDER BY id ASC",
+                    $group->title, $client_id, (int) $group->keep_id
+                ));
+            } else {
+                $ids_to_delete = $wpdb->get_col($wpdb->prepare(
+                    "SELECT id FROM $table
+                     WHERE title = %s AND client_id IS NULL
+                     AND status = 'pending' AND deleted_at IS NULL AND id != %d
+                     ORDER BY id ASC",
+                    $group->title, (int) $group->keep_id
+                ));
+            }
+            
+            if (!empty($ids_to_delete)) {
+                $placeholders = implode(',', array_fill(0, count($ids_to_delete), '%d'));
+                $wpdb->query($wpdb->prepare(
+                    "UPDATE $table SET deleted_at = %s WHERE id IN ($placeholders)",
+                    array_merge(array($now), $ids_to_delete)
+                ));
+                $deleted_ids = array_merge($deleted_ids, $ids_to_delete);
+            }
+        }
+        
+        wp_send_json_success(array(
+            'message' => sprintf('Pulizia completata: %d gruppi trovati, %d task archiviati', count($duplicates), count($deleted_ids)),
+            'groups_found' => count($duplicates),
+            'tasks_archived' => count($deleted_ids),
+            'archived_ids' => $deleted_ids
+        ));
     }
 }
