@@ -85,30 +85,67 @@ class Plugin {
         $table_name = Database::get_table_name();
         $now = current_time('mysql');
         
-        // Trova task con ricorrenza che devono essere generati
         $tasks_to_repeat = $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM $table_name 
             WHERE recurrence_type IS NOT NULL 
             AND recurrence_type != '' 
             AND (next_recurrence_date IS NULL OR next_recurrence_date <= %s)
             AND status = 'completed'
-            AND recurrence_parent_id IS NULL",
+            AND recurrence_parent_id IS NULL
+            AND deleted_at IS NULL",
             $now
         ));
         
         foreach ($tasks_to_repeat as $parent_task) {
-            // Recupera recurrence_day (potrebbe non esistere in vecchie installazioni)
             $recurrence_day = isset($parent_task->recurrence_day) ? $parent_task->recurrence_day : null;
             
-            // Calcola la prossima data di ricorrenza usando il giorno specifico se impostato
-            $next_date = self::calculate_next_recurrence_date(
-                $parent_task->due_date ? $parent_task->due_date : $parent_task->completed_at,
+            // Protezione anti-duplicato: se esiste già un child pending/in_progress, aggiorna solo next_recurrence_date
+            $existing_child = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM $table_name 
+                WHERE recurrence_parent_id = %d 
+                AND status IN ('pending', 'in_progress')
+                AND deleted_at IS NULL
+                LIMIT 1",
+                $parent_task->id
+            ));
+            
+            if ($existing_child) {
+                $future_date = self::advance_recurrence_to_future(
+                    $parent_task->next_recurrence_date ? $parent_task->next_recurrence_date : ($parent_task->due_date ? $parent_task->due_date : $parent_task->completed_at),
+                    $parent_task->recurrence_type,
+                    $parent_task->recurrence_interval,
+                    $recurrence_day
+                );
+                $wpdb->update(
+                    $table_name,
+                    array('next_recurrence_date' => $future_date),
+                    array('id' => $parent_task->id),
+                    array('%s'),
+                    array('%d')
+                );
+                continue;
+            }
+            
+            // Calcola next_date dalla next_recurrence_date (non dalla due_date originale)
+            // e avanza fino ad ottenere una data futura
+            $base_date = $parent_task->next_recurrence_date 
+                ? $parent_task->next_recurrence_date 
+                : ($parent_task->due_date ? $parent_task->due_date : $parent_task->completed_at);
+            
+            $next_date = self::advance_recurrence_to_future(
+                $base_date,
                 $parent_task->recurrence_type,
                 $parent_task->recurrence_interval,
                 $recurrence_day
             );
             
-            // Crea il nuovo task
+            $following_date = self::calculate_next_recurrence_date(
+                $next_date,
+                $parent_task->recurrence_type,
+                $parent_task->recurrence_interval,
+                $recurrence_day
+            );
+            
             $new_task_data = array(
                 'title' => $parent_task->title,
                 'description' => $parent_task->description,
@@ -120,26 +157,40 @@ class Plugin {
                 'recurrence_interval' => $parent_task->recurrence_interval,
                 'recurrence_day' => $recurrence_day,
                 'recurrence_parent_id' => $parent_task->id,
-                'next_recurrence_date' => self::calculate_next_recurrence_date(
-                    $next_date, 
-                    $parent_task->recurrence_type, 
-                    $parent_task->recurrence_interval,
-                    $recurrence_day
-                ),
+                'next_recurrence_date' => $following_date,
                 'user_id' => $parent_task->user_id
             );
             
             Database::insert_task($new_task_data);
             
-            // Aggiorna il parent task con la prossima data
             $wpdb->update(
                 $table_name,
-                array('next_recurrence_date' => $next_date),
+                array('next_recurrence_date' => $following_date),
                 array('id' => $parent_task->id),
                 array('%s'),
                 array('%d')
             );
         }
+    }
+    
+    /**
+     * Avanza la data di ricorrenza fino ad ottenere una data nel futuro.
+     * Previene loop infiniti di task nel passato quando il parent è rimasto fermo a lungo.
+     */
+    private static function advance_recurrence_to_future($start_date, $type, $interval = 1, $recurrence_day = null) {
+        $now = new \DateTime(current_time('mysql'));
+        $date_str = $start_date;
+        $max_iterations = 120;
+        
+        for ($i = 0; $i < $max_iterations; $i++) {
+            $date_str = self::calculate_next_recurrence_date($date_str, $type, $interval, $recurrence_day);
+            $candidate = new \DateTime($date_str);
+            if ($candidate > $now) {
+                return $date_str;
+            }
+        }
+        
+        return $date_str;
     }
     
     /**

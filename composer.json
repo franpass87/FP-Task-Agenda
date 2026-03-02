@@ -3,7 +3,7 @@
     "description": "Agenda semplice per gestire task e attività da fare",
     "type": "wordpress-plugin",
     "license": "GPL-2.0-or-later",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "authors": [
         {
             "name": "Francesco Passeri",
