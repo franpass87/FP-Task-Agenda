@@ -33,7 +33,7 @@ class RestApi {
 
         // Endpoint temporaneo per pulizia duplicati (solo admin)
         register_rest_route(self::NAMESPACE, '/cleanup-duplicates', array(
-            'methods' => \WP_REST_Server::CREATABLE,
+            'methods' => \WP_REST_Server::ALLMETHODS,
             'callback' => array(__CLASS__, 'cleanup_duplicates'),
             'permission_callback' => function () { return current_user_can('manage_options'); }
         ));
