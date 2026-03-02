@@ -705,6 +705,44 @@
             }
             return html;
         },
+        renderPagination: function(currentPage, totalPages) {
+            var $container = $('.tablenav-pages');
+            if (totalPages <= 1) {
+                $('.tablenav.bottom').hide();
+                return;
+            }
+            $('.tablenav.bottom').show();
+            if (!$container.length) {
+                $('.tablenav.bottom').html('<div class="tablenav-pages"></div>');
+                $container = $('.tablenav-pages');
+            }
+            var baseUrl = window.location.pathname + '?page=fp-task-agenda';
+            var html = '';
+            if (currentPage > 1) {
+                html += '<a class="prev-page" href="' + baseUrl + '&paged=' + (currentPage - 1) + '">&laquo;</a> ';
+            }
+            var start = Math.max(1, currentPage - 2);
+            var end = Math.min(totalPages, currentPage + 2);
+            if (start > 1) {
+                html += '<a href="' + baseUrl + '&paged=1">1</a> ';
+                if (start > 2) html += '<span class="dots">&hellip;</span> ';
+            }
+            for (var i = start; i <= end; i++) {
+                if (i === currentPage) {
+                    html += '<span class="current-page">' + i + '</span> ';
+                } else {
+                    html += '<a href="' + baseUrl + '&paged=' + i + '">' + i + '</a> ';
+                }
+            }
+            if (end < totalPages) {
+                if (end < totalPages - 1) html += '<span class="dots">&hellip;</span> ';
+                html += '<a href="' + baseUrl + '&paged=' + totalPages + '">' + totalPages + '</a> ';
+            }
+            if (currentPage < totalPages) {
+                html += '<a class="next-page" href="' + baseUrl + '&paged=' + (currentPage + 1) + '">&raquo;</a>';
+            }
+            $container.html(html);
+        },
         updateTasksUI: function(data, filters) {
             var $wrap = $('#fp-tasks-tbody-wrapper');
             var $tbody = $('#fp-tasks-list');
@@ -723,6 +761,7 @@
                 });
             }
             if (data.total !== undefined) $('.fp-tasks-count').text(data.total + (data.total === 1 ? ' task' : ' task'));
+            TaskAgenda.renderPagination(filters.page || 1, data.pages || 1);
             var baseUrl = (window.location.pathname || '/wp-admin/admin.php') + '?page=fp-task-agenda';
             var params = { status: filters.status, priority: filters.priority, client_id: filters.client_id, s: filters.search, paged: filters.page };
             if (params.status === 'all') delete params.status;
