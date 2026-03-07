@@ -753,51 +753,61 @@ class Database {
         $orderby_field = in_array($args['orderby'], $allowed_orderby) ? $args['orderby'] : 'created_at';
         $order_direction = strtoupper($args['order']) === 'ASC' ? 'ASC' : 'DESC';
         
-        // SEMPRE applica questo ordinamento come primo criterio:
-        // 1. Scaduti (overdue) = -1
-        // 2. In corso (in_progress) = 0
-        // 3. Da fare (pending) = 1
-        // 4. Completati (completed) = 2
-        $status_order = "CASE 
-            WHEN status != 'completed' AND due_date IS NOT NULL AND DATE(due_date) < CURDATE() THEN -1
+        // Ordinamento intelligente a più livelli (sempre applicato come base):
+        //
+        // Livello 1 — Gruppo macro per status/urgenza:
+        //   0 = In corso (in_progress)
+        //   1 = Scaduti non completati (overdue)
+        //   2 = Urgenti non scaduti non completati
+        //   3 = Alta priorità non scaduti non completati
+        //   4 = Normale/Bassa priorità non scaduti non completati
+        //   5 = Completati
+        //
+        // Livello 2 — All'interno di ogni gruppo:
+        //   - Prima quelli con scadenza più vicina (due_date ASC, NULL in fondo)
+        //   - Poi per priorità decrescente
+        //   - Poi per data creazione decrescente
+        $now = current_time('Y-m-d');
+        $smart_order = "CASE
             WHEN status = 'in_progress' THEN 0
-            WHEN status = 'pending' THEN 1
-            WHEN status = 'completed' THEN 2
-            ELSE 1 
+            WHEN status != 'completed' AND due_date IS NOT NULL AND DATE(due_date) < '{$now}' THEN 1
+            WHEN status != 'completed' AND priority = 'urgent' THEN 2
+            WHEN status != 'completed' AND priority = 'high' THEN 3
+            WHEN status != 'completed' THEN 4
+            ELSE 5
         END ASC";
-        
+
+        // Ordinamento secondario: scadenza più vicina prima (NULL in fondo), poi priorità, poi data creazione
+        $secondary_order = "CASE WHEN due_date IS NULL OR status = 'completed' THEN 1 ELSE 0 END ASC,
+            due_date ASC,
+            CASE priority WHEN 'urgent' THEN 4 WHEN 'high' THEN 3 WHEN 'normal' THEN 2 WHEN 'low' THEN 1 ELSE 0 END DESC,
+            created_at DESC";
+
         // Poi applica l'ordinamento specifico richiesto
         if ($orderby_field === 'priority') {
-            // Ordine logico: urgent=4, high=3, normal=2, low=1
-            $orderby = $status_order . ", CASE priority 
+            $orderby = $smart_order . ", CASE priority 
                 WHEN 'urgent' THEN 4 
                 WHEN 'high' THEN 3 
                 WHEN 'normal' THEN 2 
                 WHEN 'low' THEN 1 
                 ELSE 0 
-            END " . $order_direction;
+            END " . $order_direction . ", " . $secondary_order;
         } elseif ($orderby_field === 'status') {
-            // Per status, usa solo l'ordinamento logico (già definito in $status_order)
-            $orderby = $status_order;
+            $orderby = $smart_order . ", " . $secondary_order;
         } elseif ($orderby_field === 'due_date') {
-            // Per due_date: ordina per data scadenza, gestendo i NULL
             if ($order_direction === 'ASC') {
-                $orderby = $status_order . ", CASE WHEN due_date IS NULL THEN 1 ELSE 0 END ASC, due_date ASC";
+                $orderby = $smart_order . ", CASE WHEN due_date IS NULL THEN 1 ELSE 0 END ASC, due_date ASC, CASE priority WHEN 'urgent' THEN 4 WHEN 'high' THEN 3 WHEN 'normal' THEN 2 WHEN 'low' THEN 1 ELSE 0 END DESC";
             } else {
-                $orderby = $status_order . ", CASE WHEN due_date IS NULL THEN 0 ELSE 1 END DESC, due_date DESC";
+                $orderby = $smart_order . ", CASE WHEN due_date IS NULL THEN 0 ELSE 1 END DESC, due_date DESC, CASE priority WHEN 'urgent' THEN 4 WHEN 'high' THEN 3 WHEN 'normal' THEN 2 WHEN 'low' THEN 1 ELSE 0 END DESC";
             }
         } elseif ($orderby_field === 'created_at') {
-            // Ordina per data creazione
-            $orderby = $status_order . ", created_at " . $order_direction;
+            $orderby = $smart_order . ", " . $secondary_order;
         } elseif ($orderby_field === 'title') {
-            // Ordina per titolo
-            $orderby = $status_order . ", title " . $order_direction;
+            $orderby = $smart_order . ", title " . $order_direction;
         } elseif ($orderby_field === 'client_id') {
-            // Ordina per cliente
-            $orderby = $status_order . ", client_id " . $order_direction;
+            $orderby = $smart_order . ", client_id " . $order_direction . ", " . $secondary_order;
         } else {
-            // Ordina per campo specificato
-            $orderby = $status_order . ", " . $orderby_field . ' ' . $order_direction;
+            $orderby = $smart_order . ", " . $orderby_field . ' ' . $order_direction;
         }
         
         $offset = ($args['page'] - 1) * $args['per_page'];
