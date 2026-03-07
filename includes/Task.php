@@ -18,10 +18,10 @@ class Task {
      */
     public static function get_priorities() {
         return array(
-            'low' => __('Bassa', 'fp-task-agenda'),
-            'normal' => __('Normale', 'fp-task-agenda'),
-            'high' => __('Alta', 'fp-task-agenda'),
-            'urgent' => __('Urgente', 'fp-task-agenda')
+            'low'    => '🔵 ' . __('Bassa', 'fp-task-agenda'),
+            'normal' => '⚪ ' . __('Normale', 'fp-task-agenda'),
+            'high'   => '🟡 ' . __('Alta', 'fp-task-agenda'),
+            'urgent' => '🔴 ' . __('Urgente', 'fp-task-agenda'),
         );
     }
     
