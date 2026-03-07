@@ -567,7 +567,10 @@ if (!defined('ABSPATH')) {
 <div id="fp-task-modal" class="fp-modal" role="dialog" aria-modal="true" aria-labelledby="fp-modal-title" style="display: none;">
     <div class="fp-modal-content">
         <div class="fp-modal-header">
-            <h2 id="fp-modal-title"><?php echo esc_html__('Aggiungi Task', 'fp-task-agenda'); ?></h2>
+            <h2 id="fp-modal-title">
+                <?php echo esc_html__('Aggiungi Task', 'fp-task-agenda'); ?>
+                <span id="fp-modal-subtitle" class="fp-modal-subtitle" style="display:none;"></span>
+            </h2>
             <button type="button" class="fp-modal-close" aria-label="<?php echo esc_attr__('Chiudi', 'fp-task-agenda'); ?>">&times;</button>
         </div>
         <div class="fp-modal-body">
@@ -576,8 +579,8 @@ if (!defined('ABSPATH')) {
                 
                 <div class="fp-form-section fp-form-section-main">
                     <h4 class="fp-form-section-title"><?php echo esc_html__('Dati task', 'fp-task-agenda'); ?></h4>
-                <table class="form-table">
-                    <tr>
+                <table class="form-table fp-modal-form-grid">
+                    <tr id="fp-task-title-row">
                         <th scope="row">
                             <label for="fp-task-title"><?php echo esc_html__('Titolo', 'fp-task-agenda'); ?> <span class="required">*</span></label>
                         </th>
@@ -585,12 +588,12 @@ if (!defined('ABSPATH')) {
                             <input type="text" id="fp-task-title" name="title" class="regular-text" required>
                         </td>
                     </tr>
-                    <tr>
+                    <tr id="fp-task-description-row">
                         <th scope="row">
                             <label for="fp-task-description"><?php echo esc_html__('Descrizione', 'fp-task-agenda'); ?></label>
                         </th>
                         <td>
-                            <textarea id="fp-task-description" name="description" rows="4" class="large-text"></textarea>
+                            <textarea id="fp-task-description" name="description" rows="3" class="large-text"></textarea>
                         </td>
                     </tr>
                     <tr>
@@ -628,7 +631,7 @@ if (!defined('ABSPATH')) {
                 
                 <div class="fp-form-section fp-form-section-schedule">
                     <h4 class="fp-form-section-title"><?php echo esc_html__('Scadenza e ricorrenza', 'fp-task-agenda'); ?></h4>
-                <table class="form-table">
+                <table class="form-table fp-modal-form-grid">
                     <tr>
                         <th scope="row">
                             <label for="fp-task-due-date"><?php echo esc_html__('Data di scadenza', 'fp-task-agenda'); ?></label>

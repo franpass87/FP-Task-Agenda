@@ -133,7 +133,10 @@
         
         openAddModal: function() {
             TaskAgenda.resetForm();
-            $('#fp-modal-title').text(fpTaskAgenda.strings.addTask || 'Aggiungi Task');
+            $('#fp-modal-title').contents().filter(function() {
+                return this.nodeType === 3;
+            }).first().replaceWith(fpTaskAgenda.strings.addTask || 'Aggiungi Task');
+            $('#fp-modal-subtitle').text('').hide();
             $('#fp-task-status-row').hide();
             TaskAgenda.showModal();
         },
@@ -184,7 +187,10 @@
                     $('.fp-recurrence-day-description').hide();
                 }
                 
-                $('#fp-modal-title').text(fpTaskAgenda.strings.editTask || 'Modifica Task');
+                $('#fp-modal-title').contents().filter(function() {
+                    return this.nodeType === 3; // nodo testo
+                }).first().replaceWith(fpTaskAgenda.strings.editTask || 'Modifica Task');
+                $('#fp-modal-subtitle').text(title).show();
                 $('#fp-task-status-row').show();
                 TaskAgenda.showModal();
             });
@@ -255,7 +261,7 @@
             
             // Disabilita pulsante durante il salvataggio
             var $saveBtn = $('.fp-modal-save');
-            $saveBtn.prop('disabled', true).text(fpTaskAgenda.strings.saving || 'Salvataggio...');
+            $saveBtn.prop('disabled', true).text(fpTaskAgenda.strings.saving || 'Salvataggio...').addClass('is-saving');
             
             $.ajax({
                 url: fpTaskAgenda.ajaxUrl,
@@ -271,12 +277,12 @@
                         }, 500);
                     } else {
                         TaskAgenda.showNotice(response.data.message || fpTaskAgenda.strings.error, 'error');
-                        $saveBtn.prop('disabled', false).text(fpTaskAgenda.strings.save || 'Salva');
+                        $saveBtn.prop('disabled', false).text(fpTaskAgenda.strings.save || 'Salva').removeClass('is-saving');
                     }
                 },
                 error: function() {
                     TaskAgenda.showNotice(fpTaskAgenda.strings.error, 'error');
-                    $saveBtn.prop('disabled', false).text(fpTaskAgenda.strings.save || 'Salva');
+                    $saveBtn.prop('disabled', false).text(fpTaskAgenda.strings.save || 'Salva').removeClass('is-saving');
                 }
             });
         },
@@ -957,13 +963,14 @@
         
         createKanbanCard: function(task) {
             var priorityClass = 'fp-priority-' + task.priority;
-            var priorityLabel = task.priority === 'low' ? 'Bassa' : 
-                               task.priority === 'normal' ? 'Normale' : 
-                               task.priority === 'high' ? 'Alta' : 'Urgente';
+            var priorityIcons = {low: '🔵', normal: '⚪', high: '🟡', urgent: '🔴'};
+            var priorityLabels = {low: 'Bassa', normal: 'Normale', high: 'Alta', urgent: 'Urgente'};
+            var priorityIcon = priorityIcons[task.priority] || '⚪';
+            var priorityLabel = priorityLabels[task.priority] || 'Normale';
             
-            var card = $('<div class="fp-kanban-card" data-task-id="' + task.id + '" draggable="true">' +
+            var card = $('<div class="fp-kanban-card priority-' + task.priority + '" data-task-id="' + task.id + '" draggable="true">' +
                 '<div class="fp-kanban-card-header">' +
-                    '<span class="fp-priority-badge fp-priority-' + task.priority + '">' + priorityLabel + '</span>' +
+                    '<span class="fp-kanban-priority-badge priority-' + task.priority + '">' + priorityIcon + ' ' + priorityLabel + '</span>' +
                 '</div>' +
                 '<div class="fp-kanban-card-title">' + task.title + '</div>' +
                 (task.client ? '<div class="fp-kanban-card-client">' + task.client + '</div>' : '') +
