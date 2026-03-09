@@ -1,12 +1,12 @@
 <?php
 /**
  * Plugin Name: FP Task Agenda
- * Plugin URI: https://www.francescopasseri.com
+ * Plugin URI: https://francescopasseri.com
  * Description: Agenda semplice per gestire task e attività da fare - ideale per consulenti di digital marketing
  * Version: 1.1.4
  * GitHub Plugin URI: franpass87/FP-Task-Agenda
  * Author: Francesco Passeri
- * Author URI: https://www.francescopasseri.com
+ * Author URI: https://francescopasseri.com
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: fp-task-agenda
