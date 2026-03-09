@@ -1,138 +1,94 @@
 # FP Task Agenda
 
-Agenda semplice per gestire task e attività da fare - ideale per consulenti di digital marketing.
+Agenda task per consulenti di digital marketing. Gestione attività con vista tabella e Kanban, task ricorrenti, template e integrazione FP Publisher.
 
-## 📋 Caratteristiche
+[![Version](https://img.shields.io/badge/version-1.1.4-blue.svg)](https://github.com/franpass87/FP-Task-Agenda)
+[![License](https://img.shields.io/badge/license-Proprietary-red.svg)]()
 
-- ✅ Gestione completa dei task (aggiungi, modifica, elimina)
-- 📊 Dashboard con statistiche (totali, da fare, in corso, completati)
-- 🔍 Filtri per stato, priorità e cliente
-- 🔎 Ricerca testuale
-- ⚡ Interfaccia moderna e responsive
-- 🎯 Priorità configurabili (Bassa, Normale, Alta, Urgente)
-- 📅 Date di scadenza con avvisi visivi
-- ✅ Marca task come completati con un click
-- 🔐 Ogni utente vede solo i propri task
-- 👥 Gestione clienti con sincronizzazione da FP Publisher
-- 📈 Ordinamento per colonne (priorità, titolo, cliente, scadenza, stato, creazione)
-- ⚡ Azioni rapide (cambio stato da dropdown)
-- 📦 Azioni di massa (bulk actions)
+---
 
-## 🚀 Installazione
+## Per l'utente
 
-1. Carica la cartella `FP-Task-Agenda` nella directory `wp-content/plugins/`
-2. Attiva il plugin dalla pagina "Plugin" di WordPress
-3. Il plugin creerà automaticamente le tabelle necessarie nel database
+### Cosa fa
+FP Task Agenda è un'agenda task integrata nel pannello WordPress. Permette di gestire le attività per ogni cliente con priorità, scadenze, ricorrenze e vista Kanban.
 
-## 📖 Utilizzo
+### Funzionalità principali
+- **Vista tabella** con ordinamento e filtri avanzati
+- **Vista Kanban** con drag & drop
+- **Priorità**: Urgente, Alta, Normale, Bassa (con badge colorati)
+- **Task ricorrenti**: giornalieri, settimanali, mensili
+- **Template task** riutilizzabili
+- **Gestione clienti** con sincronizzazione
+- **Integrazione FP Publisher**: crea automaticamente task per post mancanti
+- **Statistiche**: contatori per stato (da fare, in corso, completati, in scadenza)
+- **Favicon personalizzata** nelle pagine admin
 
-Dopo l'attivazione, troverai il menu "Task Agenda" nella sidebar di WordPress (icona lista).
+### Ordinamento automatico
+I task vengono ordinati automaticamente: **In corso → Scaduti → Urgenti → Alta priorità → Normale**
 
-### Aggiungere un Task
+### Requisiti
+- WordPress 6.0+
+- PHP 8.0+
 
-1. Clicca su "Aggiungi Task" nella pagina principale
-2. Compila il form:
-   - **Titolo** (obbligatorio)
-   - **Descrizione** (opzionale)
-   - **Priorità** (Bassa, Normale, Alta, Urgente)
-   - **Data di scadenza** (opzionale)
-   - **Cliente** (opzionale - può essere sincronizzato da FP Publisher o aggiunto manualmente)
-3. Clicca su "Salva"
+---
 
-### Gestire i Task
+## Per lo sviluppatore
 
-- **Completare un task**: Seleziona la checkbox accanto al task oppure cambia lo stato dal dropdown
-- **Modificare un task**: Clicca sull'icona matita nella riga del task
-- **Eliminare un task**: Clicca sull'icona cestino nella riga del task (conferma richiesta)
-- **Azioni di massa**: Seleziona più task e usa il menu "Azioni di massa" per completarli o eliminarli in blocco
-
-### Filtrare i Task
-
-Usa i filtri in alto per:
-- **Stato**: Tutti, Da fare, In corso, Completati
-- **Priorità**: Tutte, Bassa, Normale, Alta, Urgente
-- **Cliente**: Tutti i clienti o un cliente specifico
-- **Ricerca**: Cerca per titolo o descrizione
-
-### Ordinare i Task
-
-Clicca sulle intestazioni delle colonne per ordinare per:
-- Priorità
-- Titolo
-- Cliente
-- Scadenza
-- Stato
-- Data di creazione
-
-### Gestire i Clienti
-
-1. Vai alla pagina "Clienti" dal menu "Task Agenda"
-2. **Sincronizza da FP Publisher**: Clicca su "Sincronizza da FP Publisher" per importare automaticamente i clienti
-3. **Aggiungi manualmente**: Clicca su "Aggiungi Cliente" per aggiungere un cliente manualmente
-
-## 🏗️ Architettura
-
-Il plugin segue l'architettura modulare moderna degli altri plugin FP:
-
-- **PSR-4 Autoload**: Gestione automatica delle classi via Composer
-- **Namespace**: `FP\TaskAgenda\`
-- **Struttura modulare**:
-  - `Plugin.php` - Classe principale (singleton)
-  - `Database.php` - Gestione database e CRUD
-  - `Task.php` - Modello e helper
-  - `Client.php` - Gestione clienti e sincronizzazione
-  - `Admin.php` - Interfaccia amministrazione
-  - `admin-templates/` - Template PHP per la UI
-  - `assets/` - CSS e JavaScript
-
-## 🔧 Sviluppo
-
-### Struttura File
-
+### Struttura
 ```
 FP-Task-Agenda/
-├── fp-task-agenda.php       # Main file del plugin
-├── composer.json             # Configurazione Composer/PSR-4
-├── vendor/                   # Autoloader Composer (generato)
-├── includes/
-│   ├── Plugin.php           # Classe principale
-│   ├── Database.php         # Gestione database
-│   ├── Task.php             # Modello task
-│   ├── Client.php           # Modello clienti
-│   ├── Admin.php            # Interfaccia admin
-│   └── admin-templates/
-│       ├── main-page.php    # Template pagina principale
-│       └── clients-page.php # Template gestione clienti
-└── assets/
-    ├── css/
-    │   └── admin.css        # Stili admin
-    └── js/
-        └── admin.js         # JavaScript admin
+├── fp-task-agenda.php          # File principale
+├── src/
+│   ├── Core/Plugin.php         # Bootstrap
+│   ├── Models/Task.php         # Modello task + DB
+│   ├── Admin/
+│   │   ├── TasksPage.php       # Pagina principale task
+│   │   ├── KanbanPage.php      # Vista Kanban
+│   │   ├── TemplatesPage.php   # Gestione template
+│   │   └── ClientsPage.php     # Gestione clienti
+│   ├── REST/
+│   │   └── TaskEndpoints.php   # API REST per AJAX
+│   ├── Cron/
+│   │   └── RecurringTasks.php  # Cron job task ricorrenti
+│   └── Integrations/
+│       └── FPPublisher.php     # Integrazione FP Publisher
+└── vendor/
 ```
 
-### Generare Autoload
+### Database
+Il plugin crea la tabella `{prefix}fp_tasks` con versioning automatico per migrazioni sicure.
 
-Dopo modifiche alle classi, rigenera l'autoloader:
+| Colonna | Tipo | Descrizione |
+|---------|------|-------------|
+| `id` | INT | ID task |
+| `title` | VARCHAR | Titolo task |
+| `status` | ENUM | `todo`, `in_progress`, `done` |
+| `priority` | ENUM | `urgent`, `high`, `normal`, `low` |
+| `due_date` | DATE | Data scadenza |
+| `client_id` | INT | ID cliente associato |
+| `recurrence_type` | ENUM | `none`, `daily`, `weekly`, `monthly` |
+| `recurrence_day` | INT | Giorno ricorrenza |
+| `template_id` | INT | ID template origine |
 
-```bash
-composer dump-autoload --optimize
-```
+### REST Endpoints (AJAX)
+| Endpoint | Metodo | Descrizione |
+|----------|--------|-------------|
+| `/wp-json/fp-tasks/v1/tasks` | GET/POST | Lista e creazione task |
+| `/wp-json/fp-tasks/v1/tasks/{id}` | PUT/DELETE | Modifica e cancellazione |
+| `/wp-json/fp-tasks/v1/quick-status` | POST | Cambio stato rapido |
 
-## 📝 Note Tecniche
+### Hooks disponibili
+| Hook | Tipo | Descrizione |
+|------|------|-------------|
+| `fp_task_before_save` | filter | Modifica dati prima del salvataggio |
+| `fp_task_after_save` | action | Dopo il salvataggio di un task |
+| `fp_task_statuses` | filter | Personalizza stati disponibili |
+| `fp_task_priorities` | filter | Personalizza priorità disponibili |
 
-- **Database**: Crea due tabelle:
-  - `wp_fp_task_agenda` - Memorizza i task
-  - `wp_fp_task_agenda_clients` - Memorizza i clienti
-- **Sicurezza**: Tutte le operazioni sono validate e sanificate
-- **Permessi**: Ogni utente può vedere e gestire solo i propri task
-- **AJAX**: Operazioni asincrone per una migliore UX
-- **Nonces**: Tutte le richieste AJAX sono protette con nonce
-- **Sincronizzazione**: I clienti possono essere sincronizzati da FP Publisher mantenendo il riferimento tramite `source_id`
+### Integrazione FP Publisher
+Quando FP Publisher rileva post con stato "Attenzione" o avanzamento 0/1, crea automaticamente task ricorrenti mensili in FP Task Agenda.
 
-## 📄 Licenza
+---
 
-GPL v2 or later
-
-## 👤 Autore
-
-Francesco Passeri - https://www.francescopasseri.com
+## Changelog
+Vedi [CHANGELOG.md](CHANGELOG.md)
