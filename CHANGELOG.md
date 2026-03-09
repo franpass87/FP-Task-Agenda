@@ -2,6 +2,10 @@
 
 All notable changes to FP Task Agenda will be documented in this file.
 
+## [1.1.5] - 2026-03-09
+### Changed
+- Docs README
+
 ## [1.1.4] - 2026-03-07
 ### Fixed
 - Icone priorità via `Task::get_priorities()` invece di CSS `::before` (non funziona su select)
