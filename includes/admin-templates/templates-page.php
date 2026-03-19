@@ -9,9 +9,10 @@ if (!defined('ABSPATH')) {
 ?>
 
 <div class="wrap fp-task-agenda-wrap">
-    <h1 class="wp-heading-inline">
+    <h1 class="screen-reader-text"><?php echo esc_html__('Template Task', 'fp-task-agenda'); ?></h1>
+    <h2 class="fp-task-agenda-page-header-title wp-heading-inline" aria-hidden="true">
         <?php echo esc_html__('Template Task', 'fp-task-agenda'); ?>
-    </h1>
+    </h2>
     
     <button type="button" class="page-title-action" id="fp-add-template-btn">
         <?php echo esc_html__('Aggiungi Template', 'fp-task-agenda'); ?>

@@ -2,6 +2,10 @@
 
 All notable changes to FP Task Agenda will be documented in this file.
 
+## [1.1.6] - 2026-03-19
+### Fixed
+- Admin: `h1` screen reader come primo heading nel `.wrap` e titolo visibile in `h2` nel page header (compat notice iniettate con `.wrap h1`); `margin-top` sul `.wrap` sotto le notice native.
+
 ## [1.1.5] - 2026-03-09
 ### Changed
 - Docs README

@@ -40,6 +40,15 @@
     max-width: 1400px;
 }
 
+/* Notice WP: margine sotto le notice native; titolo visibile pagina = h2 (primo h1 = screen-reader) */
+body[class*="fp-task"] #wpbody-content > .wrap.fp-task-agenda-wrap {
+    margin-top: 12px;
+}
+
+.fp-task-agenda-page-header-title {
+    margin: 0;
+}
+
 /* Accessibilità WCAG: focus visibile su elementi interattivi */
 .fp-task-agenda-wrap button:focus-visible,
 .fp-task-agenda-wrap a:focus-visible,

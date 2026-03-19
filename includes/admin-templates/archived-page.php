@@ -15,13 +15,14 @@ if (!defined('ABSPATH')) {
 ?>
 
 <div class="wrap fp-task-agenda-wrap">
+    <h1 class="screen-reader-text"><?php echo esc_html__('Task Archiviati', 'fp-task-agenda'); ?></h1>
     <!-- Header -->
     <div class="fp-page-header">
         <div class="fp-header-left">
-            <h1 class="wp-heading-inline" style="margin: 0;">
+            <h2 class="fp-task-agenda-page-header-title wp-heading-inline" aria-hidden="true">
                 <span class="dashicons dashicons-archive" style="vertical-align: middle; margin-right: 8px;"></span>
                 <?php echo esc_html__('Task Archiviati', 'fp-task-agenda'); ?>
-            </h1>
+            </h2>
         </div>
         <div class="fp-header-actions">
             <a href="<?php echo esc_url(admin_url('admin.php?page=fp-task-agenda')); ?>" class="page-title-action">

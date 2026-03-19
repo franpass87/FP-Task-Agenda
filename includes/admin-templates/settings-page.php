@@ -11,11 +11,12 @@ if (!defined('ABSPATH')) {
 ?>
 
 <div class="wrap fp-task-agenda-wrap">
+    <h1 class="screen-reader-text"><?php echo esc_html__('Impostazioni', 'fp-task-agenda'); ?></h1>
     <div class="fp-page-header">
         <div class="fp-header-left">
-            <h1 class="wp-heading-inline" style="margin: 0;">
+            <h2 class="fp-task-agenda-page-header-title wp-heading-inline" aria-hidden="true">
                 <?php echo esc_html__('Impostazioni', 'fp-task-agenda'); ?>
-            </h1>
+            </h2>
         </div>
     </div>
     

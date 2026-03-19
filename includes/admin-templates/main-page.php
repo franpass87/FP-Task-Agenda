@@ -17,12 +17,14 @@ if (!defined('ABSPATH')) {
 ?>
 
 <div class="wrap fp-task-agenda-wrap">
+    <?php /* Primo h1 nel .wrap: compat notice JS (jQuery .wrap h1). Titolo visibile nel banner = h2. */ ?>
+    <h1 class="screen-reader-text"><?php echo esc_html__('Task Agenda', 'fp-task-agenda'); ?></h1>
     <!-- Header con titolo e azioni principali -->
     <div class="fp-page-header">
         <div class="fp-header-left">
-            <h1 class="wp-heading-inline" style="margin: 0;">
+            <h2 class="fp-task-agenda-page-header-title wp-heading-inline" aria-hidden="true">
                 <?php echo esc_html__('Task Agenda', 'fp-task-agenda'); ?>
-            </h1>
+            </h2>
         </div>
         <div class="fp-header-actions">
             <button type="button" class="fp-btn fp-btn-primary" id="fp-add-task-btn">
