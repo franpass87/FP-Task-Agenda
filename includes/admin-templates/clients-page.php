@@ -16,6 +16,7 @@ if (!defined('ABSPATH')) {
             <h2 class="fp-task-agenda-page-header-title wp-heading-inline" aria-hidden="true">
                 <?php echo esc_html__('Gestione Clienti', 'fp-task-agenda'); ?>
             </h2>
+            <p class="fptask-page-header-desc"><?php echo esc_html__('Gestisci i clienti e sincronizzali da FP Publisher.', 'fp-task-agenda'); ?></p>
         </div>
         <div class="fp-header-actions">
             <button type="button" class="fp-btn fp-btn-primary" id="fp-add-client-btn">
@@ -26,6 +27,7 @@ if (!defined('ABSPATH')) {
                 <span class="dashicons dashicons-update"></span>
                 <?php echo esc_html__('Sincronizza da FP Publisher', 'fp-task-agenda'); ?>
             </button>
+            <span class="fptask-page-header-badge">v<?php echo esc_html(defined('FP_TASK_AGENDA_VERSION') ? FP_TASK_AGENDA_VERSION : '0'); ?></span>
         </div>
     </div>
     

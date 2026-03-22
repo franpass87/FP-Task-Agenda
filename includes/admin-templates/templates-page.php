@@ -10,14 +10,20 @@ if (!defined('ABSPATH')) {
 
 <div class="wrap fp-task-agenda-wrap">
     <h1 class="screen-reader-text"><?php echo esc_html__('Template Task', 'fp-task-agenda'); ?></h1>
-    <h2 class="fp-task-agenda-page-header-title wp-heading-inline" aria-hidden="true">
-        <?php echo esc_html__('Template Task', 'fp-task-agenda'); ?>
-    </h2>
-    
-    <button type="button" class="page-title-action" id="fp-add-template-btn">
-        <?php echo esc_html__('Aggiungi Template', 'fp-task-agenda'); ?>
-    </button>
-    
+    <div class="fp-page-header">
+        <div class="fp-header-left">
+            <h2 class="fp-task-agenda-page-header-title wp-heading-inline" aria-hidden="true">
+                <?php echo esc_html__('Template Task', 'fp-task-agenda'); ?>
+            </h2>
+            <p class="fptask-page-header-desc"><?php echo esc_html__('Crea template riutilizzabili per task rapidi.', 'fp-task-agenda'); ?></p>
+        </div>
+        <div class="fp-header-actions">
+            <button type="button" class="page-title-action" id="fp-add-template-btn">
+                <?php echo esc_html__('Aggiungi Template', 'fp-task-agenda'); ?>
+            </button>
+            <span class="fptask-page-header-badge">v<?php echo esc_html(defined('FP_TASK_AGENDA_VERSION') ? FP_TASK_AGENDA_VERSION : '0'); ?></span>
+        </div>
+    </div>
     <hr class="wp-header-end">
     
     <p class="description" style="margin-bottom: 24px;">

@@ -17,7 +17,9 @@ if (!defined('ABSPATH')) {
             <h2 class="fp-task-agenda-page-header-title wp-heading-inline" aria-hidden="true">
                 <?php echo esc_html__('Impostazioni', 'fp-task-agenda'); ?>
             </h2>
+            <p class="fptask-page-header-desc"><?php echo esc_html__('Configura paginazione, pulizia automatica e integrazione FP Publisher.', 'fp-task-agenda'); ?></p>
         </div>
+        <span class="fptask-page-header-badge">v<?php echo esc_html(defined('FP_TASK_AGENDA_VERSION') ? FP_TASK_AGENDA_VERSION : '0'); ?></span>
     </div>
     
     <hr class="wp-header-end">

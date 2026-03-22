@@ -23,12 +23,14 @@ if (!defined('ABSPATH')) {
                 <span class="dashicons dashicons-archive" style="vertical-align: middle; margin-right: 8px;"></span>
                 <?php echo esc_html__('Task Archiviati', 'fp-task-agenda'); ?>
             </h2>
+            <p class="fptask-page-header-desc"><?php echo esc_html__('Ripristina o elimina definitivamente i task archiviati.', 'fp-task-agenda'); ?></p>
         </div>
         <div class="fp-header-actions">
             <a href="<?php echo esc_url(admin_url('admin.php?page=fp-task-agenda')); ?>" class="page-title-action">
                 <span class="dashicons dashicons-arrow-left-alt" style="vertical-align: middle;"></span>
                 <?php echo esc_html__('Torna ai Task', 'fp-task-agenda'); ?>
             </a>
+            <span class="fptask-page-header-badge">v<?php echo esc_html(defined('FP_TASK_AGENDA_VERSION') ? FP_TASK_AGENDA_VERSION : '0'); ?></span>
         </div>
     </div>
     

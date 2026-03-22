@@ -269,7 +269,7 @@ class PublisherIntegration {
                     absint($client_id),
                     '%' . $wpdb->esc_like($task_type) . '%'
                 ));
-                if (!empty($existing_tasks)) {
+                if (!empty($existing_tasks) && defined('WP_DEBUG') && WP_DEBUG) {
                     foreach ($existing_tasks as $task) {
                         error_log("FP Task Agenda - create_task_for_client: Task esistente - ID: {$task->id}, Titolo: {$task->title}, Status: {$task->status}");
                     }

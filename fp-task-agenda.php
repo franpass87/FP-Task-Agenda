@@ -3,7 +3,7 @@
  * Plugin Name: FP Task Agenda
  * Plugin URI: https://francescopasseri.com
  * Description: Agenda semplice per gestire task e attività da fare - ideale per consulenti di digital marketing
- * Version: 1.1.6
+ * Version: 1.1.7
  * GitHub Plugin URI: franpass87/FP-Task-Agenda
  * Author: Francesco Passeri
  * Author URI: https://francescopasseri.com
@@ -21,7 +21,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Definisci costanti del plugin
-define('FP_TASK_AGENDA_VERSION', '1.1.6');
+define('FP_TASK_AGENDA_VERSION', '1.1.7');
 define('FP_TASK_AGENDA_PLUGIN_DIR', dirname(__FILE__) . '/');
 define('FP_TASK_AGENDA_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('FP_TASK_AGENDA_PLUGIN_FILE', __FILE__);
@@ -126,7 +126,9 @@ function fp_task_agenda_init() {
         // Inizializza il plugin principale
         return Plugin::get_instance();
     } catch (Exception $e) {
-        error_log('[FP-TASK-AGENDA] Errore fatale durante l\'inizializzazione: ' . $e->getMessage());
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('[FP-TASK-AGENDA] Errore fatale durante l\'inizializzazione: ' . $e->getMessage());
+        }
         return false;
     }
 }

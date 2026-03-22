@@ -553,14 +553,59 @@ body[class*="fp-task"] #wpbody-content > .wrap.fp-task-agenda-wrap {
     font-weight: 500;
 }
 
-/* Page Header - Titolo e Azioni */
+/* Page Header - FP Design System (grafica unificata) */
 .fp-page-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 24px 28px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin-bottom: 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid #e9ecef;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.fp-page-header .fp-task-agenda-page-header-title {
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.fp-page-header .fptask-page-header-desc {
+    margin: 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.88) !important;
+}
+
+.fp-page-header .fp-btn-primary,
+.fp-page-header .fp-btn-secondary,
+.fp-page-header .page-title-action {
+    background: rgba(255, 255, 255, 0.25) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+}
+
+.fp-page-header .fp-btn-primary:hover,
+.fp-page-header .fp-btn-secondary:hover,
+.fp-page-header .page-title-action:hover {
+    background: rgba(255, 255, 255, 0.35) !important;
+    color: #fff !important;
+}
+
+.fptask-page-header-badge {
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .fp-header-left {

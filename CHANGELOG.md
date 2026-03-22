@@ -2,6 +2,10 @@
 
 All notable changes to FP Task Agenda will be documented in this file.
 
+## [1.1.7] - 2026-03-22
+### Fixed
+- error_log condizionati a WP_DEBUG: bootstrap fatale, PublisherIntegration task esistente (no-debug-in-production).
+
 ## [1.1.6] - 2026-03-19
 ### Fixed
 - Admin: `h1` screen reader come primo heading nel `.wrap` e titolo visibile in `h2` nel page header (compat notice iniettate con `.wrap h1`); `margin-top` sul `.wrap` sotto le notice native.
