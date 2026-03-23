@@ -2,7 +2,7 @@
 
 Agenda task per consulenti di digital marketing. Gestione attività con vista tabella e Kanban, task ricorrenti, template e integrazione FP Publisher.
 
-[![Version](https://img.shields.io/badge/version-1.1.4-blue.svg)](https://github.com/franpass87/FP-Task-Agenda)
+[![Version](https://img.shields.io/badge/version-1.1.8-blue.svg)](https://github.com/franpass87/FP-Task-Agenda)
 [![License](https://img.shields.io/badge/license-Proprietary-red.svg)]()
 
 ---

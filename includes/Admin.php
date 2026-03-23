@@ -24,6 +24,10 @@ class Admin {
     
     private function __construct() {
         add_action('admin_menu', array($this, 'add_admin_menu'));
+        add_action('admin_menu', array($this, 'reorder_submenus'), 99);
+        add_action('admin_head', array($this, 'render_submenu_section_enhancements'));
+        add_action('admin_bar_menu', array($this, 'register_admin_bar_links'), 80);
+        add_filter('admin_body_class', array($this, 'add_admin_body_class'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
         add_action('admin_head', array($this, 'add_custom_favicon'));
         
@@ -150,6 +154,152 @@ class Admin {
             'fp-task-agenda-archived',
             array($this, 'render_archived_page')
         );
+    }
+
+    /**
+     * Riordina le voci del submenu (Operatività prima, poi Gestione, Sistema).
+     */
+    public function reorder_submenus() {
+        global $submenu;
+        if ( ! isset( $submenu['fp-task-agenda'] ) || ! is_array( $submenu['fp-task-agenda'] ) ) {
+            return;
+        }
+        $items    = $submenu['fp-task-agenda'];
+        $bucketed = array();
+        foreach ( $items as $item ) {
+            if ( ! is_array( $item ) || ! isset( $item[2] ) ) {
+                continue;
+            }
+            $slug = (string) $item[2];
+            if ( ! isset( $bucketed[ $slug ] ) ) {
+                $bucketed[ $slug ] = array();
+            }
+            $bucketed[ $slug ][] = $item;
+        }
+        $desired_order = array(
+            'fp-task-agenda',
+            'fp-task-agenda-clients',
+            'fp-task-agenda-templates',
+            'fp-task-agenda-archived',
+            'fp-task-agenda-settings',
+        );
+        $reordered = array();
+        foreach ( $desired_order as $slug ) {
+            if ( ! isset( $bucketed[ $slug ] ) ) {
+                continue;
+            }
+            foreach ( $bucketed[ $slug ] as $entry ) {
+                $reordered[] = $entry;
+            }
+            unset( $bucketed[ $slug ] );
+        }
+        foreach ( $bucketed as $entries ) {
+            foreach ( $entries as $entry ) {
+                $reordered[] = $entry;
+            }
+        }
+        $submenu['fp-task-agenda'] = $reordered;
+    }
+
+    /**
+     * Separatori visivi tra sezioni nel submenu.
+     */
+    public function render_submenu_section_enhancements() {
+        if ( ! current_user_can( 'read' ) ) {
+            return;
+        }
+        ?>
+        <style>
+            #toplevel_page_fp-task-agenda .wp-submenu li.fptask-submenu-section-start {
+                margin-top: 8px;
+                padding-top: 8px;
+                border-top: 1px solid rgba(240, 246, 252, 0.18);
+            }
+            #toplevel_page_fp-task-agenda .wp-submenu li.fptask-submenu-section-start::before {
+                content: attr(data-section-label);
+                display: block;
+                margin: 0 10px 6px 10px;
+                font-size: 10px;
+                line-height: 1.2;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: rgba(240, 246, 252, 0.62);
+                font-weight: 600;
+                pointer-events: none;
+            }
+        </style>
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const root = document.querySelector('#toplevel_page_fp-task-agenda .wp-submenu');
+            if (!root) return;
+            const markers = [
+                { selector: 'a[href*="page=fp-task-agenda-clients"]', label: '<?php echo esc_js( __( 'Gestione', 'fp-task-agenda' ) ); ?>' },
+                { selector: 'a[href*="page=fp-task-agenda-archived"]', label: '<?php echo esc_js( __( 'Archivio', 'fp-task-agenda' ) ); ?>' },
+                { selector: 'a[href*="page=fp-task-agenda-settings"]', label: '<?php echo esc_js( __( 'Sistema', 'fp-task-agenda' ) ); ?>' },
+            ];
+            markers.forEach(function (marker) {
+                const link = root.querySelector(marker.selector);
+                if (!link) return;
+                const item = link.closest('li');
+                if (!item) return;
+                item.classList.add('fptask-submenu-section-start');
+                item.setAttribute('data-section-label', marker.label);
+            });
+        });
+        </script>
+        <?php
+    }
+
+    /**
+     * Link rapidi nella admin bar.
+     *
+     * @param \WP_Admin_Bar $admin_bar
+     */
+    public function register_admin_bar_links( $admin_bar ) {
+        if ( ! current_user_can( 'read' ) ) {
+            return;
+        }
+        $screen   = get_current_screen();
+        $screen_id = $screen ? ( $screen->id ?? '' ) : '';
+        $is_plugin_screen = strpos( $screen_id, 'fp-task-agenda' ) !== false;
+        $admin_bar->add_node( array(
+            'id'    => 'fp-task-agenda',
+            'title' => __( 'Task Agenda', 'fp-task-agenda' ),
+            'href'  => admin_url( 'admin.php?page=fp-task-agenda' ),
+            'meta'  => $is_plugin_screen ? array( 'aria-current' => 'page' ) : array(),
+        ) );
+        $admin_bar->add_node( array(
+            'id'     => 'fp-task-agenda-clients',
+            'parent' => 'fp-task-agenda',
+            'title'  => __( 'Clienti', 'fp-task-agenda' ),
+            'href'   => admin_url( 'admin.php?page=fp-task-agenda-clients' ),
+        ) );
+        if ( current_user_can( 'manage_options' ) ) {
+            $admin_bar->add_node( array(
+                'id'     => 'fp-task-agenda-settings',
+                'parent' => 'fp-task-agenda',
+                'title'  => __( 'Impostazioni', 'fp-task-agenda' ),
+                'href'   => admin_url( 'admin.php?page=fp-task-agenda-settings' ),
+            ) );
+        }
+    }
+
+    /**
+     * Aggiunge classe body per pagine del plugin.
+     *
+     * @param string $classes
+     * @return string
+     */
+    public function add_admin_body_class( $classes ) {
+        $screen = get_current_screen();
+        if ( ! $screen ) {
+            return $classes;
+        }
+        $screen_id = (string) ( $screen->id ?? '' );
+        if ( strpos( $screen_id, 'fp-task-agenda' ) !== false && strpos( $classes, 'fptask-admin-shell' ) === false ) {
+            $classes .= ' fptask-admin-shell';
+        }
+        return $classes;
     }
     
     /**

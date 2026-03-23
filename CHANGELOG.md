@@ -2,6 +2,10 @@
 
 All notable changes to FP Task Agenda will be documented in this file.
 
+## [1.1.8] - 2026-03-23
+### Changed
+- Menu admin: ordine voci, separatori visivi (Gestione, Archivio, Sistema), link rapidi admin bar e body class (pattern FP-Experiences).
+
 ## [1.1.7] - 2026-03-22
 ### Fixed
 - error_log condizionati a WP_DEBUG: bootstrap fatale, PublisherIntegration task esistente (no-debug-in-production).
